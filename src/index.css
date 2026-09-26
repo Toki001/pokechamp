@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles for the dark-mode application */
+body {
+  @apply bg-slate-900 text-slate-200 antialiased;
+}
