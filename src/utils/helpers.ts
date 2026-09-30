@@ -1,8 +1,8 @@
 import type { BaseStats, TeamSlot } from '../types';
 
 export const getPokemonImageUrl = (name: string) => {
-  const cleanName = name.replace('-Hisui', '-Hisuian').replace('-Eternal', ''); 
-  return new URL(`../assets/pokemon/${cleanName}.webp`, import.meta.url).href;
+  // Removed the string replacements to strictly match your downloaded .webp filenames
+  return new URL(`../assets/pokemon/${name}.webp`, import.meta.url).href;
 };
 
 export const getTypeIconUrl = (type: string) => {
