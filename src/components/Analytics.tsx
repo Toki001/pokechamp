@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import rawMetaStats from '../data/metaroll_stats.json';
+import { TYPE_COLORS } from '../utils/constants';
+import { getPokemonImageUrl, getTypeIconUrl } from '../utils/helpers';
 
-// --- Type Definitions ---
+// --- Local Analytics Type Definitions ---
 interface UsageItem { name: string; usage: string; type?: string; }
 interface MatchupItem { rank: string; name: string; }
 interface StatSpread { HP: string; Atk: string; Def: string; SpA: string; SpD: string; Spe: string; }
@@ -22,23 +24,6 @@ interface MetaPokemon {
   won_with: UsageItem[];
   beaten_by: UsageItem[];
 }
-
-const TYPE_COLORS: Record<string, string> = {
-  Normal: 'bg-neutral-600', Fire: 'bg-orange-600', Water: 'bg-blue-600', Electric: 'bg-amber-500',
-  Grass: 'bg-emerald-600', Ice: 'bg-cyan-500', Fighting: 'bg-red-700', Poison: 'bg-purple-600',
-  Ground: 'bg-amber-700', Flying: 'bg-indigo-500', Psychic: 'bg-pink-600', Bug: 'bg-lime-600',
-  Rock: 'bg-stone-600', Ghost: 'bg-violet-800', Dragon: 'bg-indigo-700', Dark: 'bg-neutral-800 border border-neutral-700',
-  Steel: 'bg-slate-500', Fairy: 'bg-rose-400 text-slate-900'
-};
-
-const getPokemonImageUrl = (name: string) => {
-  const cleanName = name.replace('-Hisui', '-Hisuian').replace('-Eternal', ''); 
-  return new URL(`../assets/pokemon/${cleanName}.webp`, import.meta.url).href;
-};
-
-const getTypeIconUrl = (type: string) => {
-  return new URL(`../assets/type-icons/${type}.svg`, import.meta.url).href;
-};
 
 const getPokemonTypes = (name: string, metaStats: MetaPokemon[]) => {
   const mon = metaStats.find(m => m.pokemon === name);
