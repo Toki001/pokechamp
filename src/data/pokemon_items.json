@@ -1,0 +1,402 @@
+[
+    {
+        "name": "Focus Sash",
+        "description": "If the holder has full HP, it survives an otherwise fatal hit with 1 HP. Consumed after use."
+    },
+    {
+        "name": "Life Orb",
+        "description": "Boosts the power of the holder’s moves by 30%, but the holder loses 10% of its max HP after using a damaging move."
+    },
+    {
+        "name": "Sitrus Berry",
+        "description": "Restores 1/4 of the holder’s max HP when its HP falls to 1/2 or less. Consumed after use."
+    },
+    {
+        "name": "Miracle Seed",
+        "description": "Boosts the power of the holder’s Grass-type moves by 20%."
+    },
+    {
+        "name": "Salamencite",
+        "description": "A held item that allows Salamence to Mega Evolve."
+    },
+    {
+        "name": "Leftovers",
+        "description": "Restores 1/16 of the holder's max HP at the end of every turn."
+    },
+    {
+        "name": "Grassy Seed",
+        "description": "Boosts the holder's Defense stat by 1 stage on Grassy Terrain. Disappears for the duration of the battle after a single use."
+    },
+    {
+        "name": "Choice Scarf",
+        "description": "Boosts the holder’s Speed by 50%, but it can only use the first move it selects until it switches out."
+    },
+    {
+        "name": "Raichunite Y",
+        "description": "One of a variety of mysterious Mega Stones. A Raichu holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Psychic Seed",
+        "description": "Boosts the holder's Sp. Def stat by 1 stage on Psychic Terrain. Disappears for the duration of the battle after a single use."
+    },
+    {
+        "name": "Golisopite",
+        "description": "A held item that allows Golisopod to Mega Evolve."
+    },
+    {
+        "name": "Chople Berry",
+        "description": "Halves damage from the first supereffective Fighting-type attack. Consumed after use."
+    },
+    {
+        "name": "Floettite",
+        "description": "One of a variety of mysterious Mega Stones. A special Floette holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "White Herb",
+        "description": "Restores the holder’s lowered stats to normal. Consumed after use."
+    },
+    {
+        "name": "Colbur Berry",
+        "description": "Halves damage from the first supereffective Dark-type move. Consumed after use."
+    },
+    {
+        "name": "Fairy Feather",
+        "description": "Boosts the power of the holder's Fairy-type moves by 20%."
+    },
+    {
+        "name": "Rocky Helmet",
+        "description": "When the holder is hit by a contact move, the attacker takes damage equal to 1/6 of its max HP."
+    },
+    {
+        "name": "Charizardite Y",
+        "description": "One of a variety of mysterious Mega Stones. A Charizard holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Staraptite",
+        "description": "One of a variety of mysterious Mega Stones. A Staraptor holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Gardevoirite",
+        "description": "One of a variety of mysterious Mega Stones. A Gardevoir holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Garchompite Z",
+        "description": "A held item that allows Garchomp to Mega Evolve into Mega Garchomp Z."
+    },
+    {
+        "name": "Light Clay",
+        "description": "Extends the duration of Light Screen, Reflect, and Aurora Veil by 3 turns (8 turns total)."
+    },
+    {
+        "name": "Tyranitarite",
+        "description": "One of a variety of mysterious Mega Stones. A Tyranitar holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Froslassite",
+        "description": "One of a variety of mysterious Mega Stones. A Froslass holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Metagrossite",
+        "description": "One of a variety of mysterious Mega Stones. A Metagross holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Charcoal",
+        "description": "Boosts the power of the holder’s Fire-type moves by 20%."
+    },
+    {
+        "name": "Gengarite",
+        "description": "One of a variety of mysterious Mega Stones. A Gengar holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Mystic Water",
+        "description": "Boosts the power of the holder’s Water-type moves by 20%."
+    },
+    {
+        "name": "Occa Berry",
+        "description": "Halves damage from the first supereffective Fire-type attack. Consumed after use."
+    },
+    {
+        "name": "Lucarionite Z",
+        "description": "A held item that allows Lucario to Mega Evolve into Mega Lucario Z."
+    },
+    {
+        "name": "Black Glasses",
+        "description": "Boosts the power of the holder’s Dark-type moves by 20%."
+    },
+    {
+        "name": "Swampertite",
+        "description": "One of a variety of mysterious Mega Stones. A Swampert holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Delphoxite",
+        "description": "One of a variety of mysterious Mega Stones. A Delphox holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Eject Button",
+        "description": "Switches the holder out of battle when the holder takes damage from a move. Disappears for the duration of the battle after a single use."
+    },
+    {
+        "name": "Dragoninite",
+        "description": "One of a variety of mysterious Mega Stones. A Dragonite holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Passho Berry",
+        "description": "Halves damage from the first supereffective Water-type attack. Consumed after use."
+    },
+    {
+        "name": "Baxcalibrite",
+        "description": "A held item that allows Baxcalibur to Mega Evolve."
+    },
+    {
+        "name": "Aerodactylite",
+        "description": "One of a variety of mysterious Mega Stones. An Aerodactyl holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Cameruptite",
+        "description": "One of a variety of mysterious Mega Stones. A Camerupt holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Glimmoranite",
+        "description": "One of a variety of mysterious Mega Stones. A Glimmora holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Blastoisinite",
+        "description": "One of a variety of mysterious Mega Stones. A Blastoise holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Wide Lens",
+        "description": "Boosts the accuracy of the holder’s moves by 10%."
+    },
+    {
+        "name": "Expert Belt",
+        "description": "Boosts the power of the holder’s supereffective moves by 20%."
+    },
+    {
+        "name": "Mawilite",
+        "description": "One of a variety of mysterious Mega Stones. A Mawile holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Absolite Z",
+        "description": "A held item that allows Absol to Mega Evolve into Mega Absol Z."
+    },
+    {
+        "name": "Coba Berry",
+        "description": "Halves damage from the first supereffective Flying-type attack. Consumed after use."
+    },
+    {
+        "name": "Blazikenite",
+        "description": "One of a variety of mysterious Mega Stones. A Blaziken holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Roseli Berry",
+        "description": "Halves damage from the first supereffective Fairy-type move. Consumed after use."
+    },
+    {
+        "name": "Scovillainite",
+        "description": "One of a variety of mysterious Mega Stones. A Scovillain holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Kasib Berry",
+        "description": "Halves damage from the first supereffective Ghost-type attack. Consumed after use."
+    },
+    {
+        "name": "Twisted Spoon",
+        "description": "Boosts the power of the holder’s Psychic-type moves by 20%."
+    },
+    {
+        "name": "Mental Herb",
+        "description": "Cures the holder of Infatuation, Taunt, Torment, Disable, Heal Block, and Encore. Consumed after use."
+    },
+    {
+        "name": "Pyroarite",
+        "description": "One of a variety of mysterious Mega Stones. A Pyroar holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Sharp Beak",
+        "description": "Boosts the power of the holder’s Flying-type moves by 20%."
+    },
+    {
+        "name": "Never-Melt Ice",
+        "description": "Boosts the power of the holder’s Ice-type moves by 20%."
+    },
+    {
+        "name": "Raichunite X",
+        "description": "One of a variety of mysterious Mega Stones. A Raichu holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Damp Rock",
+        "description": "Rain summoned by the holder lasts 3 extra turns (8 turns total)."
+    },
+    {
+        "name": "Iron Ball",
+        "description": "Halves the holder’s Speed. If airborne, it becomes grounded, allowing Ground-type moves and entry hazards to affect it."
+    },
+    {
+        "name": "Leek",
+        "description": "When held by a Farfetch'd or Sirfetch'd, gives the holder a 2-stage Critical-Hit Ratio Boost."
+    },
+    {
+        "name": "Lopunnite",
+        "description": "One of a variety of mysterious Mega Stones. A Lopunny holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Meganiumite",
+        "description": "One of a variety of mysterious Mega Stones. A Meganium holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Quick Claw",
+        "description": "Gives the holder’s moves a 20% chance to go first against moves with the same priority."
+    },
+    {
+        "name": "Alakazite",
+        "description": "One of a variety of mysterious Mega Stones. An Alakazam holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Bright Powder",
+        "description": "Lowers the accuracy of moves targeting the holder by 10%."
+    },
+    {
+        "name": "Electric Seed",
+        "description": "Boosts the holder's Defense stat by 1 stage on Electric Terrain. Disappears for the duration of the battle after a single use."
+    },
+    {
+        "name": "Garchompite",
+        "description": "One of a variety of mysterious Mega Stones. A Garchomp holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Haban Berry",
+        "description": "Halves damage from the first supereffective Dragon-type attack. Consumed after use."
+    },
+    {
+        "name": "Kebia Berry",
+        "description": "Halves damage from the first supereffective Poison-type attack. Consumed after use."
+    },
+    {
+        "name": "Meowsticite",
+        "description": "One of a variety of mysterious Mega Stones. A Meowstic holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Scope Lens",
+        "description": "Raises the holder’s critical-hit ratio by 1 stage."
+    },
+    {
+        "name": "Scraftinite",
+        "description": "One of a variety of mysterious Mega Stones. A Scrafty holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Venusaurite",
+        "description": "One of a variety of mysterious Mega Stones. A Venusaur holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Air Balloon",
+        "description": "Causes the holder to float off the ground, making it immune to Ground-type moves, as well as the Spikes, Toxic Spikes, and Sticky Web statuses. Disappears for the duration of the battle if the holder takes damage from a move."
+    },
+    {
+        "name": "Chandelurite",
+        "description": "One of a variety of mysterious Mega Stones. A Chandelure holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Charizardite X",
+        "description": "One of a variety of mysterious Mega Stones. A Charizard holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Crabominite",
+        "description": "One of a variety of mysterious Mega Stones. A Crabominable holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Golurkite",
+        "description": "One of a variety of mysterious Mega Stones. A Golurk holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Greninjite",
+        "description": "One of a variety of mysterious Mega Stones. A Greninja holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Hawluchanite",
+        "description": "One of a variety of mysterious Mega Stones. A Hawlucha holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Lum Berry",
+        "description": "Cures the holder of any status condition or confusion. Consumed after use."
+    },
+    {
+        "name": "Rindo Berry",
+        "description": "Halves damage from the first supereffective Grass-type attack. Consumed after use."
+    },
+    {
+        "name": "Shuca Berry",
+        "description": "Halves damage from the first supereffective Ground-type attack. Consumed after use."
+    },
+    {
+        "name": "Spell Tag",
+        "description": "Boosts the power of the holder’s Ghost-type moves by 20%."
+    },
+    {
+        "name": "Terrain Extender",
+        "description": "When the holder creates terrain with its moves or Ability, the duration is extended by 3 turns. (Total duration: 8 turns)"
+    },
+    {
+        "name": "Abomasite",
+        "description": "One of a variety of mysterious Mega Stones. An Abomasnow holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Aggronite",
+        "description": "One of a variety of mysterious Mega Stones. An Aggron holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Altarianite",
+        "description": "One of a variety of mysterious Mega Stones. An Altaria holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Ampharosite",
+        "description": "One of a variety of mysterious Mega Stones. An Ampharos holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Black Belt",
+        "description": "Boosts the power of the holder’s Fighting-type moves by 20%."
+    },
+    {
+        "name": "Charti Berry",
+        "description": "Halves damage from the first supereffective Rock-type attack. Consumed after use."
+    },
+    {
+        "name": "Dragon Fang",
+        "description": "Boosts the power of the holder’s Dragon-type moves by 20%."
+    },
+    {
+        "name": "Drampanite",
+        "description": "One of a variety of mysterious Mega Stones. A Drampa holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Eelektrossite",
+        "description": "One of a variety of mysterious Mega Stones. An Eelektross holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Feraligite",
+        "description": "One of a variety of mysterious Mega Stones. A Feraligatr holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Gyaradosite",
+        "description": "One of a variety of mysterious Mega Stones. A Gyarados holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Houndoominite",
+        "description": "One of a variety of mysterious Mega Stones. A Houndoom holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Kangaskhanite",
+        "description": "One of a variety of mysterious Mega Stones. A Kangaskhan holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Magnet",
+        "description": "Boosts the power of the holder’s Electric-type moves by 20%."
+    },
+    {
+        "name": "Manectite",
+        "description": "One of a variety of mysterious Mega Stones. A Manectric holding this stone will be able to Mega Evolve during battle."
+    },
+    {
+        "name": "Metal Coat",
+        "description": "Boosts the power of the holder’s Steel-type moves by 20%."
+    }
+]

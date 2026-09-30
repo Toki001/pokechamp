@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import championsRawData from '../data/pokemon_championsdex_full.json';
+import itemsRawData from '../data/pokemon_items.json';
 import TeamDiscussion from './TeamDiscussion';
 import TypeCoverageMatrix from './TypeCoverageMatrix';
 import { supabase } from '../utils/supabaseClient';
@@ -51,6 +52,11 @@ interface ChampionsPokemon {
   };
 }
 
+interface ItemData {
+  name: string;
+  description: string;
+}
+
 interface Nature {
   name: string;
   raises: keyof BaseStats | null;
@@ -96,7 +102,7 @@ const STAT_METADATA = {
   def: { label: 'DEF', colorBase: 'bg-yellow-400', colorAdded: 'bg-yellow-300' },
   spa: { label: 'SP. ATK', colorBase: 'bg-sky-500', colorAdded: 'bg-[#38bdf8]' },
   spd: { label: 'SP. DEF', colorBase: 'bg-purple-400', colorAdded: 'bg-[#a78bfa]' },
-  spe: { label: 'SPD', colorBase: 'bg-fuchsia-500', colorAdded: 'bg-[#f472b6]' }
+  spe: { label: 'SPE', colorBase: 'bg-fuchsia-500', colorAdded: 'bg-[#f472b6]' }
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -129,6 +135,8 @@ const PARSED_CHAMPIONS_LIST: ChampionsPokemon[] = Object.values(championsRawData
   }
 }));
 
+const PARSED_ITEMS_LIST: ItemData[] = itemsRawData as ItemData[];
+
 const getPokemonImageUrl = (name: string) => {
   const cleanName = name.replace('-Hisui', '-Hisuian').replace('-Eternal', ''); 
   return new URL(`../assets/pokemon/${cleanName}.webp`, import.meta.url).href;
@@ -138,9 +146,14 @@ const getTypeIconUrl = (type: string) => {
   return new URL(`../assets/type-icons/${type}.svg`, import.meta.url).href;
 };
 
+const getItemImageUrl = (name: string) => {
+  if (!name || name === 'None') return '';
+  return new URL(`../assets/items/${name}.png`, import.meta.url).href;
+};
+
 const CompactTypeBadge = ({ type }: { type: string }) => (
-  <div className={`w-4 h-4 rounded-full flex items-center justify-center shadow-sm ${TYPE_COLORS[type] || 'bg-slate-700'}`}>
-    <img src={getTypeIconUrl(type)} alt={type} className="w-2.5 h-2.5 drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+  <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm ${TYPE_COLORS[type] || 'bg-slate-700'}`}>
+    <img src={getTypeIconUrl(type)} alt={type} className="w-3 h-3 drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
   </div>
 );
 
@@ -180,6 +193,10 @@ export default function TeamBuilder() {
 
   const [activeMoveSlotIndex, setActiveMoveSlotIndex] = useState<number | null>(null);
   const [moveSearchQuery, setMoveSearchQuery] = useState('');
+  
+  // Item Modal State
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -214,11 +231,9 @@ export default function TeamBuilder() {
 
   const activeSlot = team[activeIndex];
   const totalSpUsed = Object.values(activeSlot.sp).reduce((a, b) => a + b, 0);
-  const spLeft = SP_TOTAL_LIMIT - totalSpUsed;
 
   const searchResults = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
-    // Filter out Pokémon already in the team
     const selectedNames = team.map(slot => slot.pokemon?.name).filter(Boolean);
     let results = PARSED_CHAMPIONS_LIST.filter(mon => !selectedNames.includes(mon.name));
 
@@ -227,6 +242,14 @@ export default function TeamBuilder() {
     }
     return results;
   }, [searchTerm, team]);
+
+  const filteredItems = useMemo(() => {
+    if (!itemSearchQuery.trim()) return PARSED_ITEMS_LIST;
+    const q = itemSearchQuery.toLowerCase();
+    return PARSED_ITEMS_LIST.filter(i => 
+      i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q)
+    );
+  }, [itemSearchQuery]);
 
   const updateSpecificSlot = (idx: number, updates: Partial<TeamSlot>) => {
     setTeam((prev) => {
@@ -296,7 +319,6 @@ export default function TeamBuilder() {
 
   const getListStat = (base: number, statKey: keyof BaseStats) => {
     if (statView === 'base') return base;
-    // Approximates Lvl 50 stats with 31 IVs and 0 EVs mathematically mirroring the reference image
     return statKey === 'hp' ? base + 75 : base + 20;
   };
 
@@ -412,7 +434,7 @@ export default function TeamBuilder() {
               setDraggedSlotIndex(null);
             }}
             onClick={() => setActiveIndex(idx)}
-            className={`relative p-6 min-h-[380px] rounded-2xl border-2 transition-all cursor-pointer shadow-lg overflow-hidden flex flex-col ${
+            className={`relative px-5 pt-8 pb-5 min-h-[380px] rounded-2xl border-2 transition-all cursor-pointer shadow-lg overflow-hidden flex flex-col ${
               activeIndex === idx
                 ? 'border-sky-500 bg-[#1a1b26] shadow-[0_0_20px_rgba(14,165,233,0.15)]'
                 : 'border-[#2e3040] bg-[#13141c] hover:border-slate-500'
@@ -452,21 +474,20 @@ export default function TeamBuilder() {
                   </div>
                 </div>
 
-                {/* Sprite */}
-                <div className="flex justify-center mb-4">
-                  <img src={getPokemonImageUrl(slot.pokemon.name)} className="h-28 object-contain drop-shadow-2xl" alt={slot.pokemon.name} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                {/* Sprite with Item Overlay */}
+                <div className="flex justify-center mb-6 relative">
+                  <img src={getPokemonImageUrl(slot.pokemon.name)} className="h-32 object-contain drop-shadow-2xl relative z-10" alt={slot.pokemon.name} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  {slot.item && (
+                    <div className="absolute -bottom-3 z-20 bg-[#20222e] rounded-full px-3 py-1 border border-[#323445] shadow-lg flex items-center gap-2 max-w-[85%]">
+                      <img src={getItemImageUrl(slot.item)} className="w-4 h-4 object-contain" alt={slot.item} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <span className="text-xs font-black text-white truncate">{slot.item}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Item & Ability Container */}
-                <div className="flex flex-col items-center gap-2 mb-5">
-                  <div className="bg-[#20222e] rounded-full px-3 py-1 border border-[#323445] shadow-inner flex items-center gap-2 max-w-full">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Item</span>
-                    <span className="text-xs font-black text-yellow-400 truncate">{slot.item || 'None'}</span>
-                  </div>
-                  <div className="bg-[#20222e] rounded-full px-3 py-1 border border-[#323445] shadow-inner flex items-center gap-2 max-w-full">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Abil</span>
-                    <span className="text-xs font-black text-emerald-400 truncate">{slot.selectedAbility || 'None'}</span>
-                  </div>
+                {/* Ability */}
+                <div className="text-center text-sm font-black text-emerald-400 mb-4 tracking-wide">
+                  {slot.selectedAbility || 'No Ability'}
                 </div>
 
                 {/* Moves List */}
@@ -565,16 +586,16 @@ export default function TeamBuilder() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex bg-[#1a1b26] rounded-xl border border-[#2e3040] p-1 shadow-inner h-[54px]">
+              <div className="flex bg-[#1a1b26] rounded-xl border border-[#2e3040] p-1 shadow-inner h-[54px] flex-shrink-0">
                 <button
                   onClick={() => setStatView('lvl50')}
-                  className={`px-5 py-2 rounded-lg font-bold text-sm transition-colors ${statView === 'lvl50' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                  className={`px-6 py-2 rounded-lg font-black text-sm transition-colors ${statView === 'lvl50' ? 'bg-[#323445] text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                 >
                   Lvl 50
                 </button>
                 <button
                   onClick={() => setStatView('base')}
-                  className={`px-5 py-2 rounded-lg font-bold text-sm transition-colors ${statView === 'base' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                  className={`px-6 py-2 rounded-lg font-black text-sm transition-colors ${statView === 'base' ? 'bg-[#323445] text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                 >
                   Base
                 </button>
@@ -585,7 +606,7 @@ export default function TeamBuilder() {
             <div className="flex flex-col flex-1 bg-[#1a1b26] border border-[#2e3040] rounded-xl overflow-hidden shadow-inner">
               
               {/* Header */}
-              <div className="grid grid-cols-[minmax(200px,_1fr)_repeat(6,_minmax(40px,_70px))] gap-2 sm:gap-4 items-center px-6 py-4 border-b border-[#2e3040] bg-[#13141c]">
+              <div className="grid grid-cols-[minmax(180px,_1fr)_repeat(6,_minmax(40px,_60px))] gap-2 sm:gap-6 items-center px-6 py-4 border-b border-[#2e3040] bg-[#13141c]">
                 <div className="font-black text-white uppercase tracking-wider text-sm">Pokemon</div>
                 <div className="text-center font-black text-white text-xs tracking-wider">HP</div>
                 <div className="text-center font-black text-white text-xs tracking-wider">ATK</div>
@@ -602,31 +623,29 @@ export default function TeamBuilder() {
                     <div
                       key={mon.name}
                       onClick={() => handleSelectPokemon(mon)}
-                      className="grid grid-cols-[minmax(200px,_1fr)_repeat(6,_minmax(40px,_70px))] gap-2 sm:gap-4 items-center px-6 py-3 border-b border-[#2e3040]/50 hover:bg-[#20222e] cursor-pointer transition-colors"
+                      className="grid grid-cols-[minmax(180px,_1fr)_repeat(6,_minmax(40px,_60px))] gap-2 sm:gap-6 items-center px-6 py-3 border-b border-[#2e3040]/50 hover:bg-[#20222e] cursor-pointer transition-colors"
                     >
-                      {/* Name, Sprite, Types */}
                       <div className="flex items-center gap-4">
                         <img
                           src={getPokemonImageUrl(mon.name)}
                           alt={mon.name}
-                          className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0"
+                          className="w-10 h-10 object-contain drop-shadow-md flex-shrink-0"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                         <div className="flex flex-col truncate">
-                          <span className="font-black text-white text-base truncate">{mon.name}</span>
+                          <span className="font-black text-white text-sm truncate">{mon.name}</span>
                           <div className="flex gap-1 mt-1">
                             {mon.types.map((t) => <CompactTypeBadge key={t} type={t} />)}
                           </div>
                         </div>
                       </div>
 
-                      {/* Stat Columns */}
-                      <div className="text-center font-bold font-mono text-emerald-400">{getListStat(mon.baseStats.hp, 'hp')}</div>
-                      <div className="text-center font-bold font-mono text-rose-500">{getListStat(mon.baseStats.atk, 'atk')}</div>
-                      <div className="text-center font-bold font-mono text-yellow-400">{getListStat(mon.baseStats.def, 'def')}</div>
-                      <div className="text-center font-bold font-mono text-sky-500">{getListStat(mon.baseStats.spa, 'spa')}</div>
-                      <div className="text-center font-bold font-mono text-purple-400">{getListStat(mon.baseStats.spd, 'spd')}</div>
-                      <div className="text-center font-bold font-mono text-fuchsia-500">{getListStat(mon.baseStats.spe, 'spe')}</div>
+                      <div className="text-center font-black font-mono text-emerald-400">{getListStat(mon.baseStats.hp, 'hp')}</div>
+                      <div className="text-center font-black font-mono text-rose-500">{getListStat(mon.baseStats.atk, 'atk')}</div>
+                      <div className="text-center font-black font-mono text-yellow-400">{getListStat(mon.baseStats.def, 'def')}</div>
+                      <div className="text-center font-black font-mono text-sky-500">{getListStat(mon.baseStats.spa, 'spa')}</div>
+                      <div className="text-center font-black font-mono text-purple-400">{getListStat(mon.baseStats.spd, 'spd')}</div>
+                      <div className="text-center font-black font-mono text-fuchsia-500">{getListStat(mon.baseStats.spe, 'spe')}</div>
                     </div>
                   ))
                 ) : (
@@ -657,23 +676,40 @@ export default function TeamBuilder() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 border-b border-[#2e3040] pb-8">
               
-              {/* Item */}
+              {/* Interactive Item Modal Trigger */}
               <div>
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Held Item</h3>
-                <input
-                  type="text"
-                  placeholder="e.g. Leftovers, Sitrus Berry..."
-                  value={activeSlot.item}
-                  onChange={(e) => updateActiveSlot({ item: e.target.value })}
-                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white font-bold outline-none focus:border-emerald-500 text-sm shadow-inner"
-                />
+                <div 
+                  onClick={() => setIsItemModalOpen(true)}
+                  className="flex items-center gap-3 bg-[#13141c] border border-[#2e3040] rounded-lg p-2.5 cursor-pointer hover:border-yellow-500 transition-all group shadow-inner h-[52px]"
+                >
+                  <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 group-hover:bg-[#20222e] transition-colors">
+                    {activeSlot.item ? (
+                      <img src={getItemImageUrl(activeSlot.item)} alt={activeSlot.item} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <span className="text-slate-500 font-bold text-lg">+</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <span className={`font-bold text-sm truncate ${activeSlot.item ? 'text-yellow-400' : 'text-slate-500'}`}>
+                      {activeSlot.item || 'Select Held Item...'}
+                    </span>
+                  </div>
+                </div>
+                {activeSlot.item && (
+                  <div className="mt-4 p-4 bg-[#13141c] border border-[#2e3040] rounded-lg border-l-4 border-l-yellow-500 shadow-inner">
+                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                      {PARSED_ITEMS_LIST.find(i => i.name === activeSlot.item)?.description || 'No description available.'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Ability */}
               <div>
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Ability</h3>
                 <select
-                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white font-bold outline-none focus:border-emerald-500 text-sm shadow-inner appearance-none"
+                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white font-bold outline-none focus:border-emerald-500 text-sm shadow-inner appearance-none h-[52px]"
                   value={activeSlot.selectedAbility}
                   onChange={(e) => updateActiveSlot({ selectedAbility: e.target.value })}
                 >
@@ -681,21 +717,57 @@ export default function TeamBuilder() {
                     <option key={ab.name} value={ab.name}>{ab.name}</option>
                   ))}
                 </select>
+                {(() => {
+                  const currentAbility = activeSlot.pokemon.abilities.find((a) => a.name === activeSlot.selectedAbility);
+                  return currentAbility && currentAbility.description !== 'Description not found.' ? (
+                    <div className="mt-4 p-4 bg-[#13141c] border border-[#2e3040] rounded-lg border-l-4 border-l-emerald-500 shadow-inner">
+                      <p className="text-xs text-slate-300 leading-relaxed font-medium">{currentAbility.description}</p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* Nature */}
               <div>
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Nature</h3>
-                <div className="flex gap-2">
-                  <select
-                    className="flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white outline-none focus:border-sky-500 font-bold appearance-none text-sm shadow-inner"
-                    value={activeSlot.nature.name}
-                    onChange={(e) => updateActiveSlot({ nature: NATURES.find((n) => n.name === e.target.value)! })}
-                  >
-                    {NATURES.map((n) => (
-                      <option key={n.name} value={n.name}>{n.name}</option>
-                    ))}
-                  </select>
+                <select
+                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white outline-none focus:border-sky-500 font-bold appearance-none mb-3 shadow-inner h-[52px]"
+                  value={activeSlot.nature.name}
+                  onChange={(e) => updateActiveSlot({ nature: NATURES.find((n) => n.name === e.target.value)! })}
+                >
+                  {NATURES.map((n) => (
+                    <option key={n.name} value={n.name}>{n.name}</option>
+                  ))}
+                </select>
+
+                <div className="flex gap-3 items-center mt-1">
+                  <div className="flex items-center gap-2 flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-1.5 pr-2">
+                    <div className="w-6 h-6 rounded bg-rose-500/20 text-rose-400 flex items-center justify-center font-black text-[10px] border border-rose-500/30">+</div>
+                    <select
+                      className="flex-1 bg-transparent text-white outline-none font-bold text-xs appearance-none cursor-pointer"
+                      value={activeSlot.nature.raises || ''}
+                      onChange={(e) => handleNatureStatChange('raises', e.target.value as keyof BaseStats)}
+                    >
+                      <option value="" disabled>Neutral</option>
+                      {STAT_LABELS.map((s) => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-1.5 pr-2">
+                    <div className="w-6 h-6 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-[10px] border border-sky-500/30">-</div>
+                    <select
+                      className="flex-1 bg-transparent text-white outline-none font-bold text-xs appearance-none cursor-pointer"
+                      value={activeSlot.nature.lowers || ''}
+                      onChange={(e) => handleNatureStatChange('lowers', e.target.value as keyof BaseStats)}
+                    >
+                      <option value="" disabled>Neutral</option>
+                      {STAT_LABELS.map((s) => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -866,6 +938,81 @@ export default function TeamBuilder() {
       </div>
 
       {activeSlot.pokemon && <TypeCoverageMatrix types={activeSlot.pokemon.types} />}
+
+      {/* Item Selection Modal Overlay */}
+      {isItemModalOpen && activeSlot.pokemon && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-center shadow-md z-10">
+              <div>
+                <h3 className="text-xl font-black text-white">Select Held Item</h3>
+                <p className="text-sm text-yellow-400 font-bold mt-1">For {activeSlot.pokemon.name}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsItemModalOpen(false);
+                  setItemSearchQuery('');
+                }}
+                className="w-10 h-10 rounded-full bg-[#20222e] text-slate-400 hover:text-white hover:bg-rose-500 transition-colors flex items-center justify-center border border-[#383a4c]"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div className="p-6 border-b border-[#2e3040] bg-[#13141c]">
+              <input
+                type="text"
+                placeholder="Filter items by name or description..."
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+                className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 text-white font-bold outline-none focus:border-yellow-500 shadow-inner"
+              />
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-4 space-y-2 custom-scrollbar">
+              <div
+                onClick={() => {
+                  updateActiveSlot({ item: '' });
+                  setIsItemModalOpen(false);
+                  setItemSearchQuery('');
+                }}
+                className="p-4 bg-[#13141c] border border-[#2e3040] hover:border-rose-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm flex items-center gap-4"
+              >
+                <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center flex-shrink-0">
+                  <span className="text-rose-500 font-bold text-xl">✕</span>
+                </div>
+                <span className="font-black text-lg text-rose-500">Remove Item</span>
+              </div>
+
+              {filteredItems.map((item) => (
+                <div
+                  key={item.name}
+                  onClick={() => {
+                    updateActiveSlot({ item: item.name });
+                    setIsItemModalOpen(false);
+                    setItemSearchQuery('');
+                  }}
+                  className="p-5 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group flex items-start gap-5"
+                >
+                  <img 
+                    src={getItemImageUrl(item.name)} 
+                    alt={item.name} 
+                    className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0 mt-1"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <div>
+                    <span className="font-black text-lg text-white group-hover:text-yellow-400 transition-colors block mb-1.5">{item.name}</span>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+              {filteredItems.length === 0 && (
+                <div className="text-center text-slate-500 py-10 font-bold">No matching items found.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Move Selection Modal Overlay */}
       {activeMoveSlotIndex !== null && activeSlot.pokemon && (
