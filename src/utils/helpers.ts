@@ -1,7 +1,6 @@
 import type { BaseStats, TeamSlot } from '../types';
 
 export const getPokemonImageUrl = (name: string) => {
-  // Removed the string replacements to strictly match your downloaded .webp filenames
   return new URL(`../assets/pokemon/${name}.webp`, import.meta.url).href;
 };
 
@@ -12,6 +11,12 @@ export const getTypeIconUrl = (type: string) => {
 export const getItemImageUrl = (name: string) => {
   if (!name || name === 'None') return '';
   return new URL(`../assets/items/${name}.png`, import.meta.url).href;
+};
+
+// New helper for Move Category images
+export const getMoveCategoryUrl = (category: string) => {
+  if (!category) return '';
+  return new URL(`../assets/move-category/${category.toLowerCase()}.png`, import.meta.url).href;
 };
 
 export const calculateLvl50StatForSlot = (slot: TeamSlot, statName: keyof BaseStats) => {

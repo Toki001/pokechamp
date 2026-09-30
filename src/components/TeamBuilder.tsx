@@ -2,11 +2,11 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TeamDiscussion from './TeamDiscussion';
 import { supabase } from '../utils/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
-// MUST BE IMPORT TYPE TO AVOID VERBATIM MODULE SYNTAX ERROR
 import type { TeamSlot, ChampionsPokemon, BaseStats, Nature } from '../types';
 import { NATURES, STAT_LABELS, STAT_METADATA, TYPE_COLORS, ALL_TYPES, PARSED_CHAMPIONS_LIST, PARSED_ITEMS_LIST } from '../utils/constants';
-import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl, calculateLvl50StatForSlot } from '../utils/helpers';
+import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl, getMoveCategoryUrl, calculateLvl50StatForSlot } from '../utils/helpers';
 
 const CompactTypeBadge = ({ type }: { type: string }) => (
   <img 
@@ -149,9 +149,14 @@ export default function TeamBuilder() {
 
   const filteredMoves = useMemo(() => {
     if (!activeSlot || !activeSlot.pokemon || !Array.isArray(activeSlot.pokemon.moves)) return [];
-    if (!moveSearchQuery.trim()) return activeSlot.pokemon.moves;
+    
+    // Filter out moves that are already equipped in this slot
+    const selectedMovesSet = new Set(activeSlot.selectedMoves.filter(Boolean));
+    const availableMoves = activeSlot.pokemon.moves.filter(m => !selectedMovesSet.has(m.name));
+
+    if (!moveSearchQuery.trim()) return availableMoves;
     const q = moveSearchQuery.toLowerCase();
-    return activeSlot.pokemon.moves.filter(
+    return availableMoves.filter(
       (m) =>
         (m.name && m.name.toLowerCase().includes(q)) ||
         (m.type && m.type.toLowerCase().includes(q)) ||
@@ -185,6 +190,7 @@ export default function TeamBuilder() {
   };
 
   const handleSpChange = (stat: keyof BaseStats, val: number) => {
+    if (isNaN(val)) val = 0;
     const targetValue = Math.max(0, val);
     const currentTotalWithoutThisStat =
       Object.values(activeSlot.sp).reduce((a, b) => a + b, 0) - activeSlot.sp[stat];
@@ -220,7 +226,15 @@ export default function TeamBuilder() {
     updateActiveSlot({ selectedMoves: updatedMoves });
   };
 
+  const { user, setAuthModalOpen } = useAuth(); // <--- Add this at the top of TeamBuilder function
+
   const saveTeamToCloud = async () => {
+    // If not logged in, trigger the Auth Modal instead of saving
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     if (team.every((slot) => slot.pokemon === null)) {
       alert('Cannot save an empty team!');
       return;
@@ -233,7 +247,8 @@ export default function TeamBuilder() {
       {
         short_id: shortId,
         team_name: `${activeSlot.pokemon?.name || 'Championship'}'s Team`,
-        roster: team
+        roster: team,
+        user_id: user.id // Tie team to user
       }
     ]);
 
@@ -388,7 +403,7 @@ export default function TeamBuilder() {
                       })}
                     </div>
 
-                    {/* Mini Stat Summary including HP */}
+                    {/* Mini Stat Summary - Perfectly Aligned */}
                     <div className="space-y-2 mt-auto bg-[#13141c] -mx-3 -mb-3 p-4 rounded-xl border border-[#2e3040]">
                       {STAT_LABELS.map(s => {
                         const baseVal = slot.pokemon!.baseStats[s.key];
@@ -402,12 +417,12 @@ export default function TeamBuilder() {
                         const spW = Math.min((spVal / METER_ABSOLUTE_MAX) * 100, 100 - baseW);
 
                         return (
-                          <div key={s.key} className="flex items-center gap-2">
-                            <div className="w-10 flex items-center justify-between font-black text-slate-400 text-[11px] tracking-wider">
-                              <span className="w-3 font-bold text-xs leading-none text-center">
+                          <div key={s.key} className="flex items-center gap-3">
+                            <div className="w-12 flex items-center font-black text-slate-400 text-[11px] tracking-wider">
+                              <div className="w-3 flex justify-start">
                                 {isRaises ? <span className="text-rose-400">↑</span> : isLowers ? <span className="text-sky-400">↓</span> : ''}
-                              </span>
-                              <span>{s.label.replace('Sp. ', 'SP').substring(0,3).toUpperCase()}</span>
+                              </div>
+                              <span className="text-right w-8">{s.label.replace('Sp. ', 'SP').substring(0,3).toUpperCase()}</span>
                             </div>
                             
                             <div className="flex-1 h-2 bg-[#20222e] rounded-full overflow-hidden flex shadow-inner">
@@ -415,9 +430,9 @@ export default function TeamBuilder() {
                               <div className={`${meta.colorAdded} h-full`} style={{ width: `${spW}%` }}></div>
                             </div>
                             
-                            <div className="w-14 text-right flex flex-col justify-center leading-[0.9] relative">
-                              {spVal > 0 && <span className="text-yellow-400 text-[9px] font-black absolute -top-3.5 right-0">+{spVal}</span>}
-                              <span className="font-bold text-white text-sm font-mono">{total}</span>
+                            <div className="w-10 text-right flex flex-col justify-center relative">
+                              {spVal > 0 && <span className="text-yellow-400 text-[10px] font-black absolute -top-3.5 right-0 leading-none">+{spVal}</span>}
+                              <span className="font-bold text-white text-[13px] font-mono leading-none">{total}</span>
                             </div>
                           </div>
                         )
@@ -686,11 +701,10 @@ export default function TeamBuilder() {
                     return (
                       <div key={key} className="flex items-center gap-3 bg-[#13141c] p-2.5 rounded-xl border border-[#2e3040] shadow-sm">
                         <div className="w-16 text-xs font-black text-slate-200 tracking-wider flex items-center justify-between">
-                          <div className="w-3">
-                            {isRaises && <span className="text-rose-400 font-bold">↑</span>}
-                            {isLowers && <span className="text-sky-400 font-bold">↓</span>}
+                          <div className="w-3 flex justify-start">
+                            {isRaises ? <span className="text-rose-400 font-bold">↑</span> : isLowers ? <span className="text-sky-400 font-bold">↓</span> : ''}
                           </div>
-                          {meta.label}
+                          <span className="text-right w-10">{meta.label}</span>
                         </div>
 
                         <div className="flex-grow flex items-center gap-4">
@@ -704,14 +718,28 @@ export default function TeamBuilder() {
 
                         <div className="flex items-center gap-1.5 flex-shrink-0 bg-[#1a1b26] p-1.5 rounded-lg border border-[#2e3040]">
                           <button
+                            onClick={() => handleSpChange(key, 0)}
+                            className="w-9 h-7 rounded bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center text-[8px] font-black text-slate-300 transition-colors"
+                          >
+                            MIN
+                          </button>
+                          <button
                             onClick={() => handleSpChange(key, currentSp - 1)}
                             className="w-7 h-7 rounded bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center font-black text-slate-400 transition-colors text-xs"
                           >
                             —
                           </button>
-                          <div className="w-10 h-7 flex items-center justify-center text-xs font-black text-white font-mono bg-[#13141c] rounded border border-[#2e3040] shadow-inner">
-                            {currentSp}
-                          </div>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={currentSp}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              handleSpChange(key, isNaN(val) ? 0 : val);
+                            }}
+                            className="w-10 h-7 text-center text-xs font-black text-white font-mono bg-[#13141c] rounded border border-[#2e3040] shadow-inner outline-none focus:border-sky-500"
+                          />
                           <button
                             onClick={() => handleSpChange(key, currentSp + 1)}
                             disabled={totalSpUsed >= SP_TOTAL_LIMIT || currentSp >= SP_STAT_LIMIT}
@@ -787,12 +815,11 @@ export default function TeamBuilder() {
                             <div className="flex-1 pr-4">
                               <div className="flex items-center gap-3 mb-2">
                                 <img src={getTypeIconUrl(moveDetails.type)} alt={moveDetails.type} title={moveDetails.type} className="w-5 h-5 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-[#20222e] px-2 py-0.5 rounded">
-                                  {moveDetails.category}
-                                </span>
+                                <img src={getMoveCategoryUrl(moveDetails.category)} alt={moveDetails.category} title={moveDetails.category} className="h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               </div>
-                              <span className="font-black text-lg text-white group-hover:text-sky-400 transition-colors">{moveDetails.name}</span>
-                              <div className="text-[11px] font-bold text-slate-500 flex gap-4 mt-2 font-mono">
+                              <span className="font-black text-xl text-white group-hover:text-sky-400 transition-colors">{moveDetails.name}</span>
+                              
+                              <div className="text-xs font-bold text-slate-500 font-mono flex gap-4 mt-2">
                                 <span>PWR: {moveDetails.power}</span>
                                 <span>ACC: {moveDetails.accuracy}</span>
                                 <span>PP: {moveDetails.pp}</span>
@@ -937,85 +964,10 @@ export default function TeamBuilder() {
 
       </div>
 
-      {/* Item Selection Modal Overlay */}
-      {isItemModalOpen && activeSlot.pokemon && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
-            <div className="p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-center shadow-md z-10">
-              <div>
-                <h3 className="text-xl font-black text-white">Select Held Item</h3>
-                <p className="text-sm text-yellow-400 font-bold mt-1">For {activeSlot.pokemon.name}</p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsItemModalOpen(false);
-                  setItemSearchQuery('');
-                }}
-                className="w-10 h-10 rounded-full bg-[#20222e] text-slate-400 hover:text-white hover:bg-rose-500 transition-colors flex items-center justify-center border border-[#383a4c]"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-
-            <div className="p-6 border-b border-[#2e3040] bg-[#13141c]">
-              <input
-                type="text"
-                placeholder="Filter items by name or description..."
-                value={itemSearchQuery}
-                onChange={(e) => setItemSearchQuery(e.target.value)}
-                className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 text-white font-bold outline-none focus:border-yellow-500 shadow-inner"
-              />
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-4 space-y-2 custom-scrollbar">
-              <div
-                onClick={() => {
-                  updateActiveSlot({ item: '' });
-                  setIsItemModalOpen(false);
-                  setItemSearchQuery('');
-                }}
-                className="p-4 bg-[#13141c] border border-[#2e3040] hover:border-rose-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm flex items-center gap-4"
-              >
-                <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-rose-500 font-bold text-xl">✕</span>
-                </div>
-                <span className="font-black text-lg text-rose-500">Remove Item</span>
-              </div>
-
-              {filteredItems.map((item) => (
-                <div
-                  key={item.name}
-                  onClick={() => {
-                    updateActiveSlot({ item: item.name });
-                    setIsItemModalOpen(false);
-                    setItemSearchQuery('');
-                  }}
-                  className="p-5 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group flex items-start gap-5"
-                >
-                  <img 
-                    src={getItemImageUrl(item.name)} 
-                    alt={item.name} 
-                    className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0 mt-1"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  <div>
-                    <span className="font-black text-lg text-white group-hover:text-yellow-400 transition-colors block mb-1.5">{item.name}</span>
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{item.description}</p>
-                  </div>
-                </div>
-              ))}
-              {filteredItems.length === 0 && (
-                <div className="text-center text-slate-500 py-10 font-bold">No matching items found.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Move Selection Modal Overlay */}
       {activeMoveSlotIndex !== null && activeSlot.pokemon && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
+          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
             <div className="p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-center shadow-md z-10">
               <div>
                 <h3 className="text-xl font-black text-white">Select Move</h3>
@@ -1042,29 +994,28 @@ export default function TeamBuilder() {
               />
             </div>
 
-            <div className="overflow-y-auto flex-1 p-4 space-y-2 custom-scrollbar">
+            <div className="overflow-y-auto flex-1 p-6 space-y-4 custom-scrollbar">
               {filteredMoves.map((m) => (
                 <div
                   key={m.name}
                   onClick={() => handleSelectMove(m.name)}
-                  className="p-5 bg-[#13141c] border border-[#2e3040] hover:border-sky-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group"
+                  className="p-5 bg-[#13141c] border border-[#2e3040] hover:border-sky-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group flex flex-col gap-3"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-5 h-5 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-[#20222e] px-2.5 py-1 rounded border border-[#383a4c]">
-                        {m.category}
-                      </span>
-                      <span className="font-black text-lg text-white ml-2 group-hover:text-sky-400 transition-colors">{m.name}</span>
+                      <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-7 h-7 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <img src={getMoveCategoryUrl(m.category)} alt={m.category} title={m.category} className="h-5 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <span className="font-black text-xl text-white ml-2 group-hover:text-sky-400 transition-colors">{m.name}</span>
                     </div>
-                    <div className="text-xs font-bold text-slate-500 font-mono flex gap-4 bg-[#1a1b26] p-2 rounded-lg border border-[#2e3040]">
-                      <span className="flex flex-col items-center"><span className="text-[9px] uppercase tracking-wider text-slate-600 mb-0.5">PWR</span><span className="text-slate-300">{m.power}</span></span>
-                      <span className="flex flex-col items-center"><span className="text-[9px] uppercase tracking-wider text-slate-600 mb-0.5">ACC</span><span className="text-slate-300">{m.accuracy}</span></span>
-                      <span className="flex flex-col items-center"><span className="text-[9px] uppercase tracking-wider text-slate-600 mb-0.5">PP</span><span className="text-slate-300">{m.pp}</span></span>
+                    
+                    <div className="text-xs font-bold text-slate-500 font-mono flex gap-6 bg-[#1a1b26] p-3 rounded-lg border border-[#2e3040] shadow-sm">
+                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">PWR</span><span className="text-slate-200 text-base font-black">{m.power}</span></span>
+                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">ACC</span><span className="text-slate-200 text-base font-black">{m.accuracy}</span></span>
+                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">PP</span><span className="text-slate-200 text-base font-black">{m.pp}</span></span>
                     </div>
                   </div>
                   {m.description && (
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium pl-1 border-l-2 border-slate-700">{m.description}</p>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium pl-3 border-l-2 border-slate-700 ml-1">{m.description}</p>
                   )}
                 </div>
               ))}
