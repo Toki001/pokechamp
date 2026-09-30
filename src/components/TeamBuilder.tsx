@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import championsRawData from '../data/pokemon_championsdex_full.json';
 import itemsRawData from '../data/pokemon_items.json';
@@ -65,10 +65,12 @@ interface Nature {
 
 const NATURES: Nature[] = [
   { name: 'Adamant', raises: 'atk', lowers: 'spa' },
+  { name: 'Bashful', raises: null, lowers: null },
   { name: 'Bold', raises: 'def', lowers: 'atk' },
   { name: 'Brave', raises: 'atk', lowers: 'spe' },
   { name: 'Calm', raises: 'spd', lowers: 'atk' },
   { name: 'Careful', raises: 'spd', lowers: 'spa' },
+  { name: 'Docile', raises: null, lowers: null },
   { name: 'Gentle', raises: 'spd', lowers: 'def' },
   { name: 'Hardy', raises: null, lowers: null },
   { name: 'Hasty', raises: 'spe', lowers: 'def' },
@@ -81,14 +83,16 @@ const NATURES: Nature[] = [
   { name: 'Naive', raises: 'spe', lowers: 'spd' },
   { name: 'Naughty', raises: 'atk', lowers: 'spd' },
   { name: 'Quiet', raises: 'spa', lowers: 'spe' },
+  { name: 'Quirky', raises: null, lowers: null },
   { name: 'Rash', raises: 'spa', lowers: 'spd' },
   { name: 'Relaxed', raises: 'def', lowers: 'spe' },
   { name: 'Sassy', raises: 'spd', lowers: 'spe' },
   { name: 'Serious', raises: null, lowers: null },
   { name: 'Timid', raises: 'spe', lowers: 'atk' }
-].sort((a, b) => a.name.localeCompare(b.name));
+];
 
 const STAT_LABELS: { key: keyof BaseStats; label: string }[] = [
+  { key: 'hp', label: 'HP' },
   { key: 'atk', label: 'Attack' },
   { key: 'def', label: 'Defense' },
   { key: 'spa', label: 'Sp. Atk' },
@@ -100,8 +104,8 @@ const STAT_METADATA = {
   hp: { label: 'HP', colorBase: 'bg-emerald-400', colorAdded: 'bg-[#05df72]' },
   atk: { label: 'ATK', colorBase: 'bg-rose-500', colorAdded: 'bg-[#ff4d6d]' },
   def: { label: 'DEF', colorBase: 'bg-yellow-400', colorAdded: 'bg-yellow-300' },
-  spa: { label: 'SP. ATK', colorBase: 'bg-sky-500', colorAdded: 'bg-[#38bdf8]' },
-  spd: { label: 'SP. DEF', colorBase: 'bg-purple-400', colorAdded: 'bg-[#a78bfa]' },
+  spa: { label: 'SPA', colorBase: 'bg-sky-500', colorAdded: 'bg-[#38bdf8]' },
+  spd: { label: 'SPD', colorBase: 'bg-purple-400', colorAdded: 'bg-[#a78bfa]' },
   spe: { label: 'SPE', colorBase: 'bg-fuchsia-500', colorAdded: 'bg-[#f472b6]' }
 };
 
@@ -194,9 +198,21 @@ export default function TeamBuilder() {
   const [activeMoveSlotIndex, setActiveMoveSlotIndex] = useState<number | null>(null);
   const [moveSearchQuery, setMoveSearchQuery] = useState('');
   
-  // Item Modal State
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState('');
+
+  const [isNatureDropdownOpen, setIsNatureDropdownOpen] = useState(false);
+  const natureDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (natureDropdownRef.current && !natureDropdownRef.current.contains(event.target as Node)) {
+        setIsNatureDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -231,6 +247,7 @@ export default function TeamBuilder() {
 
   const activeSlot = team[activeIndex];
   const totalSpUsed = Object.values(activeSlot.sp).reduce((a, b) => a + b, 0);
+  const spLeft = SP_TOTAL_LIMIT - totalSpUsed;
 
   const searchResults = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
@@ -286,18 +303,6 @@ export default function TeamBuilder() {
     updateActiveSlot({ sp: { ...activeSlot.sp, [stat]: safelyClampedValue } });
   };
 
-  const handleNatureStatChange = (type: 'raises' | 'lowers', statKey: keyof BaseStats) => {
-    const newRaises = type === 'raises' ? statKey : activeSlot.nature.raises;
-    const newLowers = type === 'lowers' ? statKey : activeSlot.nature.lowers;
-
-    if (newRaises === newLowers) {
-      updateActiveSlot({ nature: NATURES.find((n) => n.raises === null)! });
-      return;
-    }
-    const matchedNature = NATURES.find((n) => n.raises === newRaises && n.lowers === newLowers);
-    if (matchedNature) updateActiveSlot({ nature: matchedNature });
-  };
-
   const calculateLvl50StatForSlot = (slot: TeamSlot, statName: keyof BaseStats) => {
     if (!slot.pokemon) return 0;
     const base = slot.pokemon.baseStats[statName];
@@ -320,6 +325,11 @@ export default function TeamBuilder() {
   const getListStat = (base: number, statKey: keyof BaseStats) => {
     if (statView === 'base') return base;
     return statKey === 'hp' ? base + 75 : base + 20;
+  };
+
+  const getNatureDisplayString = (n: Nature) => {
+    if (!n.raises) return `${n.name} Neutral`;
+    return `${n.name} +${STAT_METADATA[n.raises].label} / -${STAT_METADATA[n.lowers!].label}`;
   };
 
   const handleSelectMove = (moveName: string) => {
@@ -466,8 +476,8 @@ export default function TeamBuilder() {
             {slot.pokemon ? (
               <div className="flex flex-col h-full relative z-0">
                 
-                {/* Header: Name & Type Icons on Right Side Horizontal */}
-                <div className="flex items-center justify-center gap-3 mb-3 px-8">
+                {/* Header: Name & Type Icons */}
+                <div className="flex items-center justify-center gap-2 mb-2 px-6">
                   <span className="font-black text-white text-xl truncate">{slot.pokemon.name}</span>
                   <div className="flex gap-1 flex-shrink-0">
                     {slot.pokemon.types.map(t => <CompactTypeBadge key={t} type={t} />)}
@@ -486,7 +496,7 @@ export default function TeamBuilder() {
                 </div>
 
                 {/* Ability */}
-                <div className="text-center text-sm font-black text-emerald-400 mb-4 tracking-wide">
+                <div className="text-center text-sm font-black text-white mb-4 tracking-wide">
                   {slot.selectedAbility || 'No Ability'}
                 </div>
 
@@ -541,8 +551,8 @@ export default function TeamBuilder() {
                           <div className={`${meta.colorAdded} h-full`} style={{ width: `${spW}%` }}></div>
                         </div>
                         
-                        <div className="w-14 text-right flex flex-col justify-center leading-[0.9]">
-                          {spVal > 0 ? <span className="text-yellow-400 text-[9px] font-black h-2 block">+{spVal}</span> : <span className="h-2 block"></span>}
+                        <div className="w-14 text-right flex flex-col justify-center leading-[0.9] relative">
+                          {spVal > 0 && <span className="text-yellow-400 text-[9px] font-black absolute -top-3.5 right-0">+{spVal}</span>}
                           <span className="font-bold text-white text-sm font-mono">{total}</span>
                         </div>
                       </div>
@@ -674,109 +684,125 @@ export default function TeamBuilder() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 border-b border-[#2e3040] pb-8">
+            {/* Left: Nature/Item, Right: Ability List */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 border-b border-[#2e3040] pb-8">
               
-              {/* Interactive Item Modal Trigger */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Held Item</h3>
-                <div 
-                  onClick={() => setIsItemModalOpen(true)}
-                  className="flex items-center gap-3 bg-[#13141c] border border-[#2e3040] rounded-lg p-2.5 cursor-pointer hover:border-yellow-500 transition-all group shadow-inner h-[52px]"
-                >
-                  <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 group-hover:bg-[#20222e] transition-colors">
-                    {activeSlot.item ? (
-                      <img src={getItemImageUrl(activeSlot.item)} alt={activeSlot.item} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                    ) : (
-                      <span className="text-slate-500 font-bold text-lg">+</span>
+              <div className="flex flex-col gap-6">
+                
+                {/* Custom Nature Selector */}
+                <div className="relative" ref={natureDropdownRef}>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nature</h3>
+                  <div 
+                    onClick={() => setIsNatureDropdownOpen(!isNatureDropdownOpen)}
+                    className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3 text-white hover:border-sky-500 font-bold cursor-pointer shadow-inner flex justify-between items-center mb-3"
+                  >
+                    <span>{activeSlot.nature.name}</span>
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                  {isNatureDropdownOpen && (
+                    <div className="absolute top-[70px] left-0 w-full mt-2 bg-[#1a1b26] border border-[#2e3040] rounded-xl shadow-2xl z-30 max-h-72 overflow-y-auto custom-scrollbar">
+                      {NATURES.map((n) => (
+                        <div 
+                          key={n.name}
+                          onClick={() => {
+                            updateActiveSlot({ nature: n });
+                            setIsNatureDropdownOpen(false);
+                          }}
+                          className={`p-3 border-b border-[#2e3040]/50 hover:bg-[#20222e] cursor-pointer flex items-center justify-between transition-colors ${activeSlot.nature.name === n.name ? 'bg-[#20222e] text-white' : 'text-slate-300'}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${activeSlot.nature.name === n.name ? 'border-sky-500' : 'border-slate-600'}`}>
+                              {activeSlot.nature.name === n.name && <div className="w-2 h-2 rounded-full bg-sky-500"></div>}
+                            </div>
+                            <span className="font-bold">{n.name}</span>
+                          </div>
+                          <span className="text-xs text-slate-400">
+                            {n.raises ? `+${STAT_METADATA[n.raises].label} / -${STAT_METADATA[n.lowers!].label}` : 'Neutral'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-3 items-center mt-1">
+                    <div className="flex items-center justify-between flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-3 shadow-inner">
+                      <span className="text-white font-bold text-sm">
+                        {activeSlot.nature.raises ? STAT_METADATA[activeSlot.nature.raises].label : '—'}
+                      </span>
+                      <span className="text-rose-500 font-bold text-xs">+10%</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-3 shadow-inner">
+                      <span className="text-white font-bold text-sm">
+                        {activeSlot.nature.lowers ? STAT_METADATA[activeSlot.nature.lowers].label : '—'}
+                      </span>
+                      <span className="text-sky-500 font-bold text-xs">-10%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Held Item Selector */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Held Item</h3>
+                  <div 
+                    onClick={() => setIsItemModalOpen(true)}
+                    className="flex flex-col gap-2 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-lg p-3 cursor-pointer transition-all shadow-inner group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded bg-[#20222e] flex items-center justify-center flex-shrink-0 group-hover:bg-[#2a2d3d] transition-colors border border-[#323445]">
+                        {activeSlot.item ? (
+                          <img src={getItemImageUrl(activeSlot.item)} alt={activeSlot.item} className="w-7 h-7 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        ) : (
+                          <span className="text-slate-500 font-bold text-lg">+</span>
+                        )}
+                      </div>
+                      <span className={`font-bold text-base truncate ${activeSlot.item ? 'text-yellow-400' : 'text-slate-500'}`}>
+                        {activeSlot.item || 'Select Held Item...'}
+                      </span>
+                    </div>
+                    {activeSlot.item && (
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 pr-2">
+                        {PARSED_ITEMS_LIST.find(i => i.name === activeSlot.item)?.description}
+                      </p>
                     )}
                   </div>
-                  <div className="flex flex-col flex-1 overflow-hidden">
-                    <span className={`font-bold text-sm truncate ${activeSlot.item ? 'text-yellow-400' : 'text-slate-500'}`}>
-                      {activeSlot.item || 'Select Held Item...'}
-                    </span>
-                  </div>
                 </div>
-                {activeSlot.item && (
-                  <div className="mt-4 p-4 bg-[#13141c] border border-[#2e3040] rounded-lg border-l-4 border-l-yellow-500 shadow-inner">
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                      {PARSED_ITEMS_LIST.find(i => i.name === activeSlot.item)?.description || 'No description available.'}
-                    </p>
-                  </div>
-                )}
+
               </div>
 
-              {/* Ability */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Ability</h3>
-                <select
-                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white font-bold outline-none focus:border-emerald-500 text-sm shadow-inner appearance-none h-[52px]"
-                  value={activeSlot.selectedAbility}
-                  onChange={(e) => updateActiveSlot({ selectedAbility: e.target.value })}
-                >
-                  {activeSlot.pokemon.abilities.map((ab) => (
-                    <option key={ab.name} value={ab.name}>{ab.name}</option>
-                  ))}
-                </select>
-                {(() => {
-                  const currentAbility = activeSlot.pokemon.abilities.find((a) => a.name === activeSlot.selectedAbility);
-                  return currentAbility && currentAbility.description !== 'Description not found.' ? (
-                    <div className="mt-4 p-4 bg-[#13141c] border border-[#2e3040] rounded-lg border-l-4 border-l-emerald-500 shadow-inner">
-                      <p className="text-xs text-slate-300 leading-relaxed font-medium">{currentAbility.description}</p>
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-
-              {/* Nature */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Nature</h3>
-                <select
-                  className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3.5 text-white outline-none focus:border-sky-500 font-bold appearance-none mb-3 shadow-inner h-[52px]"
-                  value={activeSlot.nature.name}
-                  onChange={(e) => updateActiveSlot({ nature: NATURES.find((n) => n.name === e.target.value)! })}
-                >
-                  {NATURES.map((n) => (
-                    <option key={n.name} value={n.name}>{n.name}</option>
-                  ))}
-                </select>
-
-                <div className="flex gap-3 items-center mt-1">
-                  <div className="flex items-center gap-2 flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-1.5 pr-2">
-                    <div className="w-6 h-6 rounded bg-rose-500/20 text-rose-400 flex items-center justify-center font-black text-[10px] border border-rose-500/30">+</div>
-                    <select
-                      className="flex-1 bg-transparent text-white outline-none font-bold text-xs appearance-none cursor-pointer"
-                      value={activeSlot.nature.raises || ''}
-                      onChange={(e) => handleNatureStatChange('raises', e.target.value as keyof BaseStats)}
-                    >
-                      <option value="" disabled>Neutral</option>
-                      {STAT_LABELS.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-1.5 pr-2">
-                    <div className="w-6 h-6 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-[10px] border border-sky-500/30">-</div>
-                    <select
-                      className="flex-1 bg-transparent text-white outline-none font-bold text-xs appearance-none cursor-pointer"
-                      value={activeSlot.nature.lowers || ''}
-                      onChange={(e) => handleNatureStatChange('lowers', e.target.value as keyof BaseStats)}
-                    >
-                      <option value="" disabled>Neutral</option>
-                      {STAT_LABELS.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
-                  </div>
+              {/* Ability Custom Radio List */}
+              <div className="flex flex-col">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ability</h3>
+                <div className="flex flex-col gap-3">
+                  {activeSlot.pokemon.abilities.map((ab) => {
+                    const isSelected = activeSlot.selectedAbility === ab.name;
+                    return (
+                      <div 
+                        key={ab.name}
+                        onClick={() => updateActiveSlot({ selectedAbility: ab.name })}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-[#13141c] border-emerald-500' : 'bg-[#1a1b26] border-[#2e3040] hover:border-slate-500'}`}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-emerald-500' : 'border-slate-600'}`}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+                          </div>
+                          <span className={`font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{ab.name}</span>
+                        </div>
+                        <p className={`text-xs pl-7 leading-relaxed ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {ab.description !== 'Description not found.' ? ab.description : 'No description available.'}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
             </div>
 
             {/* Stat Points Engine */}
-            <div className="space-y-6">
-              {Object.entries(activeSlot.pokemon.baseStats).map(([statName, baseValue]) => {
-                const key = statName as keyof BaseStats;
+            <div className="space-y-4">
+              {STAT_LABELS.map((s) => {
+                const key = s.key;
+                const baseValue = activeSlot.pokemon!.baseStats[key];
                 const meta = STAT_METADATA[key];
                 const currentSp = activeSlot.sp[key];
 
@@ -790,68 +816,62 @@ export default function TeamBuilder() {
 
                 const baseWidth = Math.min((baseValue / METER_ABSOLUTE_MAX) * 100, 100);
                 const addedWidth = Math.min((currentSp / METER_ABSOLUTE_MAX) * 100, 100 - baseWidth);
-                const percentIncrease =
-                  baseStatCalcAtZero === 0
-                    ? 0
-                    : (((statAtZeroSp - baseStatCalcAtZero) / baseStatCalcAtZero) * 100).toFixed(1);
+
+                const isRaises = activeSlot.nature.raises === key;
+                const isLowers = activeSlot.nature.lowers === key;
 
                 return (
-                  <div key={key} className="flex items-center gap-4 bg-[#13141c] p-3 rounded-xl border border-[#2e3040] shadow-sm">
-                    <div className="w-20 text-sm font-black text-slate-200 tracking-wider flex items-center justify-between">
+                  <div key={key} className="flex items-center gap-3 bg-[#13141c] p-2.5 rounded-xl border border-[#2e3040] shadow-sm">
+                    <div className="w-16 text-xs font-black text-slate-200 tracking-wider flex items-center justify-between">
+                      <div className="w-3">
+                        {isRaises && <span className="text-rose-400 font-bold">↑</span>}
+                        {isLowers && <span className="text-sky-400 font-bold">↓</span>}
+                      </div>
                       {meta.label}
-                      {activeSlot.nature.raises === key && <span className="text-rose-400 font-bold ml-2">↑</span>}
-                      {activeSlot.nature.lowers === key && <span className="text-sky-400 font-bold ml-2">↓</span>}
                     </div>
 
                     <div className="flex-grow flex items-center gap-4">
                       <div className="flex flex-col justify-center w-full max-w-[200px] flex-shrink-0">
-                        <div className="h-4 bg-[#20222e] rounded-full flex overflow-hidden w-full relative shadow-inner">
+                        <div className="h-3 bg-[#20222e] rounded-full flex overflow-hidden w-full shadow-inner">
                           <div className={`${meta.colorBase} h-full transition-all duration-300`} style={{ width: `${baseWidth}%` }}></div>
                           <div className={`${meta.colorAdded} h-full transition-all duration-300`} style={{ width: `${addedWidth}%` }}></div>
-                        </div>
-                        <div className="text-[10px] font-bold h-3 mt-2 flex justify-between items-center px-1">
-                          <span className="text-slate-500 font-mono">Base {baseValue}</span>
-                          {currentSp > 0 && (
-                            <div className="flex gap-2">
-                              <span className={`text-${meta.colorAdded.replace('bg-', '')}`}>+{currentSp}</span>
-                              <span className="text-slate-400">({percentIncrease}%)</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0 bg-[#1a1b26] p-1.5 rounded-lg border border-[#2e3040]">
+                    <div className="flex items-center gap-1.5 flex-shrink-0 bg-[#1a1b26] p-1.5 rounded-lg border border-[#2e3040]">
                       <button
                         onClick={() => handleSpChange(key, currentSp - 1)}
-                        className="w-10 h-10 rounded-md bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center font-black text-slate-400 transition-colors"
+                        className="w-7 h-7 rounded bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center font-black text-slate-400 transition-colors text-xs"
                       >
                         —
                       </button>
-                      <div className="w-16 h-10 flex items-center justify-center text-sm font-black text-white font-mono bg-[#13141c] rounded border border-[#2e3040] shadow-inner">
+                      <div className="w-10 h-7 flex items-center justify-center text-xs font-black text-white font-mono bg-[#13141c] rounded border border-[#2e3040] shadow-inner">
                         {currentSp}
                       </div>
                       <button
                         onClick={() => handleSpChange(key, currentSp + 1)}
                         disabled={totalSpUsed >= SP_TOTAL_LIMIT || currentSp >= SP_STAT_LIMIT}
-                        className="w-10 h-10 rounded-md bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center font-black text-emerald-400 disabled:opacity-30 transition-colors"
+                        className="w-7 h-7 rounded bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center font-black text-emerald-400 disabled:opacity-30 transition-colors text-xs"
                       >
                         +
                       </button>
                       <button
                         onClick={() => handleSpChange(key, SP_STAT_LIMIT)}
                         disabled={totalSpUsed >= SP_TOTAL_LIMIT || currentSp >= SP_STAT_LIMIT}
-                        className="w-12 h-10 rounded-md bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center text-[10px] font-black text-slate-300 disabled:opacity-30 tracking-widest transition-colors ml-1"
+                        className="w-9 h-7 rounded bg-[#20222e] hover:bg-[#2a2d3d] flex items-center justify-center text-[8px] font-black text-slate-300 disabled:opacity-30 tracking-widest transition-colors ml-0.5"
                       >
                         MAX
                       </button>
                     </div>
 
-                    <div className="w-24 text-right flex flex-col justify-center flex-shrink-0 bg-[#1a1b26] p-3 rounded-lg border border-[#2e3040]">
-                      <div className="font-black text-lg font-mono">
+                    <div className="w-24 text-right flex flex-col justify-center flex-shrink-0 bg-[#1a1b26] p-2.5 rounded-lg border border-[#2e3040]">
+                      <div className="font-black text-sm font-mono text-white flex justify-end gap-1">
+                        <span className="text-slate-500">{baseValue}</span>
+                        <span className="text-slate-600">/</span>
                         <span className={currentSp > 0 ? 'text-yellow-400' : 'text-white'}>{statAtZeroSp}</span>
                       </div>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">Level 50</span>
+                      <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Base / Lvl 50</span>
                     </div>
                   </div>
                 );
@@ -860,8 +880,19 @@ export default function TeamBuilder() {
 
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-[#2e3040]">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-4 border-[#2e3040] border-t-sky-500 flex items-center justify-center flex-col">
-                  <span className="text-sm font-black text-white leading-none">{SP_TOTAL_LIMIT - totalSpUsed}</span>
+                <div className="relative w-16 h-16 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="32" cy="32" r="28" stroke="#2e3040" strokeWidth="6" fill="none" />
+                    <circle 
+                      cx="32" cy="32" r="28" 
+                      stroke="#0ea5e9" strokeWidth="6" fill="none" 
+                      strokeDasharray={175.93} 
+                      strokeDashoffset={175.93 - (spLeft / 66) * 175.93} 
+                      className="transition-all duration-500 ease-out" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="absolute font-black text-white text-lg">{spLeft}</span>
                 </div>
                 <div>
                   <div className="text-lg font-black text-white">
