@@ -1,0 +1,1332 @@
+[
+    {
+        "pokemon": "Rillaboom",
+        "usage": "53.4%",
+        "winrate": "50.2%"
+    },
+    {
+        "pokemon": "Sneasler",
+        "usage": "43.3%",
+        "winrate": "49.2%"
+    },
+    {
+        "pokemon": "Salamence",
+        "usage": "32.2%",
+        "winrate": "50.2%"
+    },
+    {
+        "pokemon": "Incineroar",
+        "usage": "31.9%",
+        "winrate": "49.7%"
+    },
+    {
+        "pokemon": "Kingambit",
+        "usage": "24.6%",
+        "winrate": "49.4%"
+    },
+    {
+        "pokemon": "Gholdengo",
+        "usage": "21.6%",
+        "winrate": "53.0%"
+    },
+    {
+        "pokemon": "Basculegion",
+        "usage": "19.8%",
+        "winrate": "47.4%"
+    },
+    {
+        "pokemon": "Indeedee [Female]",
+        "usage": "18.4%",
+        "winrate": "44.7%"
+    },
+    {
+        "pokemon": "Golisopod",
+        "usage": "15.5%",
+        "winrate": "46.3%"
+    },
+    {
+        "pokemon": "Raichu",
+        "usage": "15.4%",
+        "winrate": "53.0%"
+    },
+    {
+        "pokemon": "Arcanine [Hisuian Form]",
+        "usage": "15.4%",
+        "winrate": "51.3%"
+    },
+    {
+        "pokemon": "Farigiraf",
+        "usage": "15.1%",
+        "winrate": "47.8%"
+    },
+    {
+        "pokemon": "Garchomp",
+        "usage": "14.4%",
+        "winrate": "48.1%"
+    },
+    {
+        "pokemon": "Floette",
+        "usage": "12.5%",
+        "winrate": "52.0%"
+    },
+    {
+        "pokemon": "Pelipper",
+        "usage": "12.5%",
+        "winrate": "48.6%"
+    },
+    {
+        "pokemon": "Archaludon",
+        "usage": "12.0%",
+        "winrate": "51.8%"
+    },
+    {
+        "pokemon": "Sylveon",
+        "usage": "11.9%",
+        "winrate": "48.7%"
+    },
+    {
+        "pokemon": "Milotic",
+        "usage": "11.8%",
+        "winrate": "49.1%"
+    },
+    {
+        "pokemon": "Charizard",
+        "usage": "10.5%",
+        "winrate": "50.1%"
+    },
+    {
+        "pokemon": "Tyranitar",
+        "usage": "8.6%",
+        "winrate": "50.2%"
+    },
+    {
+        "pokemon": "Staraptor",
+        "usage": "8.1%",
+        "winrate": "49.8%"
+    },
+    {
+        "pokemon": "Gardevoir",
+        "usage": "8.0%",
+        "winrate": "44.5%"
+    },
+    {
+        "pokemon": "Excadrill",
+        "usage": "6.3%",
+        "winrate": "51.2%"
+    },
+    {
+        "pokemon": "Indeedee",
+        "usage": "6.3%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Volcarona",
+        "usage": "6.2%",
+        "winrate": "50.3%"
+    },
+    {
+        "pokemon": "Sinistcha",
+        "usage": "6.0%",
+        "winrate": "46.3%"
+    },
+    {
+        "pokemon": "Whimsicott",
+        "usage": "6.0%",
+        "winrate": "44.5%"
+    },
+    {
+        "pokemon": "Froslass",
+        "usage": "5.7%",
+        "winrate": "51.6%"
+    },
+    {
+        "pokemon": "Armarouge",
+        "usage": "5.5%",
+        "winrate": "45.7%"
+    },
+    {
+        "pokemon": "Lucario",
+        "usage": "5.5%",
+        "winrate": "44.1%"
+    },
+    {
+        "pokemon": "Metagross",
+        "usage": "5.1%",
+        "winrate": "47.9%"
+    },
+    {
+        "pokemon": "Torkoal",
+        "usage": "5.1%",
+        "winrate": "45.2%"
+    },
+    {
+        "pokemon": "Politoed",
+        "usage": "5.0%",
+        "winrate": "51.1%"
+    },
+    {
+        "pokemon": "Grimmsnarl",
+        "usage": "4.9%",
+        "winrate": "49.7%"
+    },
+    {
+        "pokemon": "Gengar",
+        "usage": "4.7%",
+        "winrate": "53.4%"
+    },
+    {
+        "pokemon": "Swampert",
+        "usage": "4.1%",
+        "winrate": "53.0%"
+    },
+    {
+        "pokemon": "Baxcalibur",
+        "usage": "3.9%",
+        "winrate": "42.5%"
+    },
+    {
+        "pokemon": "Primarina",
+        "usage": "3.7%",
+        "winrate": "45.8%"
+    },
+    {
+        "pokemon": "Venusaur",
+        "usage": "3.6%",
+        "winrate": "51.2%"
+    },
+    {
+        "pokemon": "Dragonite",
+        "usage": "3.6%",
+        "winrate": "50.6%"
+    },
+    {
+        "pokemon": "Glimmora",
+        "usage": "3.5%",
+        "winrate": "52.0%"
+    },
+    {
+        "pokemon": "Aerodactyl",
+        "usage": "3.5%",
+        "winrate": "47.9%"
+    },
+    {
+        "pokemon": "Pawmot",
+        "usage": "3.5%",
+        "winrate": "46.1%"
+    },
+    {
+        "pokemon": "Delphox",
+        "usage": "3.4%",
+        "winrate": "48.9%"
+    },
+    {
+        "pokemon": "Hatterene",
+        "usage": "3.0%",
+        "winrate": "43.5%"
+    },
+    {
+        "pokemon": "Ninetales [Alolan Form]",
+        "usage": "3.0%",
+        "winrate": "43.0%"
+    },
+    {
+        "pokemon": "Blastoise",
+        "usage": "2.5%",
+        "winrate": "43.6%"
+    },
+    {
+        "pokemon": "Annihilape",
+        "usage": "2.3%",
+        "winrate": "54.2%"
+    },
+    {
+        "pokemon": "Camerupt",
+        "usage": "2.2%",
+        "winrate": "47.7%"
+    },
+    {
+        "pokemon": "Corviknight",
+        "usage": "2.0%",
+        "winrate": "48.8%"
+    },
+    {
+        "pokemon": "Kommo-o",
+        "usage": "1.9%",
+        "winrate": "51.1%"
+    },
+    {
+        "pokemon": "Maushold",
+        "usage": "1.8%",
+        "winrate": "44.0%"
+    },
+    {
+        "pokemon": "Mawile",
+        "usage": "1.8%",
+        "winrate": "42.3%"
+    },
+    {
+        "pokemon": "Talonflame",
+        "usage": "1.8%",
+        "winrate": "41.1%"
+    },
+    {
+        "pokemon": "Sableye",
+        "usage": "1.8%",
+        "winrate": "39.7%"
+    },
+    {
+        "pokemon": "Absol",
+        "usage": "1.8%",
+        "winrate": "36.5%"
+    },
+    {
+        "pokemon": "Blaziken",
+        "usage": "1.7%",
+        "winrate": "45.0%"
+    },
+    {
+        "pokemon": "Ceruledge",
+        "usage": "1.6%",
+        "winrate": "48.7%"
+    },
+    {
+        "pokemon": "Vivillon",
+        "usage": "1.5%",
+        "winrate": "45.7%"
+    },
+    {
+        "pokemon": "Hydreigon",
+        "usage": "1.4%",
+        "winrate": "46.4%"
+    },
+    {
+        "pokemon": "Toxapex",
+        "usage": "1.3%",
+        "winrate": "48.6%"
+    },
+    {
+        "pokemon": "Dragapult",
+        "usage": "1.3%",
+        "winrate": "46.8%"
+    },
+    {
+        "pokemon": "Lycanroc [Dusk Form]",
+        "usage": "1.2%",
+        "winrate": "48.2%"
+    },
+    {
+        "pokemon": "Gallade",
+        "usage": "1.1%",
+        "winrate": "49.0%"
+    },
+    {
+        "pokemon": "Scovillain",
+        "usage": "1.0%",
+        "winrate": "49.8%"
+    },
+    {
+        "pokemon": "Typhlosion [Hisuian Form]",
+        "usage": "0.9%",
+        "winrate": "52.1%"
+    },
+    {
+        "pokemon": "Aegislash",
+        "usage": "0.9%",
+        "winrate": "46.8%"
+    },
+    {
+        "pokemon": "Kleavor",
+        "usage": "0.9%",
+        "winrate": "43.2%"
+    },
+    {
+        "pokemon": "Rotom [Wash Rotom]",
+        "usage": "0.9%",
+        "winrate": "33.7%"
+    },
+    {
+        "pokemon": "Tsareena",
+        "usage": "0.8%",
+        "winrate": "41.6%"
+    },
+    {
+        "pokemon": "Sirfetch'd",
+        "usage": "0.8%",
+        "winrate": "38.0%"
+    },
+    {
+        "pokemon": "Scrafty",
+        "usage": "0.7%",
+        "winrate": "46.4%"
+    },
+    {
+        "pokemon": "Weavile",
+        "usage": "0.7%",
+        "winrate": "45.7%"
+    },
+    {
+        "pokemon": "Snorlax",
+        "usage": "0.7%",
+        "winrate": "45.7%"
+    },
+    {
+        "pokemon": "Zoroark [Hisuian Form]",
+        "usage": "0.7%",
+        "winrate": "40.0%"
+    },
+    {
+        "pokemon": "Pyroar",
+        "usage": "0.6%",
+        "winrate": "48.9%"
+    },
+    {
+        "pokemon": "Hawlucha",
+        "usage": "0.6%",
+        "winrate": "47.1%"
+    },
+    {
+        "pokemon": "Meowscarada",
+        "usage": "0.6%",
+        "winrate": "45.1%"
+    },
+    {
+        "pokemon": "Rotom [Heat Rotom]",
+        "usage": "0.6%",
+        "winrate": "44.4%"
+    },
+    {
+        "pokemon": "Lopunny",
+        "usage": "0.6%",
+        "winrate": "43.6%"
+    },
+    {
+        "pokemon": "Clefable",
+        "usage": "0.6%",
+        "winrate": "43.0%"
+    },
+    {
+        "pokemon": "Meganium",
+        "usage": "0.6%",
+        "winrate": "42.9%"
+    },
+    {
+        "pokemon": "Kangaskhan",
+        "usage": "0.6%",
+        "winrate": "40.9%"
+    },
+    {
+        "pokemon": "Alakazam",
+        "usage": "0.6%",
+        "winrate": "38.3%"
+    },
+    {
+        "pokemon": "Toxtricity",
+        "usage": "0.6%",
+        "winrate": "35.0%"
+    },
+    {
+        "pokemon": "Scizor",
+        "usage": "0.6%",
+        "winrate": "34.5%"
+    },
+    {
+        "pokemon": "Espathra",
+        "usage": "0.5%",
+        "winrate": "53.2%"
+    },
+    {
+        "pokemon": "Chandelure",
+        "usage": "0.5%",
+        "winrate": "45.5%"
+    },
+    {
+        "pokemon": "Tinkaton",
+        "usage": "0.5%",
+        "winrate": "45.0%"
+    },
+    {
+        "pokemon": "Empoleon",
+        "usage": "0.5%",
+        "winrate": "43.7%"
+    },
+    {
+        "pokemon": "Crabominable",
+        "usage": "0.5%",
+        "winrate": "39.7%"
+    },
+    {
+        "pokemon": "Inteleon",
+        "usage": "0.5%",
+        "winrate": "38.3%"
+    },
+    {
+        "pokemon": "Greninja",
+        "usage": "0.5%",
+        "winrate": "34.0%"
+    },
+    {
+        "pokemon": "Mamoswine",
+        "usage": "0.4%",
+        "winrate": "48.2%"
+    },
+    {
+        "pokemon": "Samurott [Hisuian Form]",
+        "usage": "0.4%",
+        "winrate": "47.5%"
+    },
+    {
+        "pokemon": "Vanilluxe",
+        "usage": "0.4%",
+        "winrate": "47.1%"
+    },
+    {
+        "pokemon": "Golurk",
+        "usage": "0.4%",
+        "winrate": "46.9%"
+    },
+    {
+        "pokemon": "Gyarados",
+        "usage": "0.4%",
+        "winrate": "45.9%"
+    },
+    {
+        "pokemon": "Araquanid",
+        "usage": "0.4%",
+        "winrate": "45.6%"
+    },
+    {
+        "pokemon": "Grapploct",
+        "usage": "0.4%",
+        "winrate": "43.3%"
+    },
+    {
+        "pokemon": "Skarmory",
+        "usage": "0.4%",
+        "winrate": "42.5%"
+    },
+    {
+        "pokemon": "Toxtricity [Low Key Form]",
+        "usage": "0.4%",
+        "winrate": "42.1%"
+    },
+    {
+        "pokemon": "Altaria",
+        "usage": "0.4%",
+        "winrate": "41.4%"
+    },
+    {
+        "pokemon": "Cinderace",
+        "usage": "0.4%",
+        "winrate": "41.7%"
+    },
+    {
+        "pokemon": "Pincurchin",
+        "usage": "0.4%",
+        "winrate": "38.4%"
+    },
+    {
+        "pokemon": "Oranguru",
+        "usage": "0.4%",
+        "winrate": "39.0%"
+    },
+    {
+        "pokemon": "Palafin",
+        "usage": "0.3%",
+        "winrate": "53.3%"
+    },
+    {
+        "pokemon": "Azumarill",
+        "usage": "0.3%",
+        "winrate": "46.3%"
+    },
+    {
+        "pokemon": "Klefki",
+        "usage": "0.3%",
+        "winrate": "44.4%"
+    },
+    {
+        "pokemon": "Meowstic [Female]",
+        "usage": "0.3%",
+        "winrate": "44.0%"
+    },
+    {
+        "pokemon": "Houndoom",
+        "usage": "0.3%",
+        "winrate": "43.1%"
+    },
+    {
+        "pokemon": "Abomasnow",
+        "usage": "0.3%",
+        "winrate": "42.9%"
+    },
+    {
+        "pokemon": "Mimikyu",
+        "usage": "0.3%",
+        "winrate": "41.7%"
+    },
+    {
+        "pokemon": "Ninetales",
+        "usage": "0.3%",
+        "winrate": "41.4%"
+    },
+    {
+        "pokemon": "Vileplume",
+        "usage": "0.3%",
+        "winrate": "40.6%"
+    },
+    {
+        "pokemon": "Aggron",
+        "usage": "0.3%",
+        "winrate": "37.9%"
+    },
+    {
+        "pokemon": "Ditto",
+        "usage": "0.3%",
+        "winrate": "38.1%"
+    },
+    {
+        "pokemon": "Mr. Mime",
+        "usage": "0.3%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Sceptile",
+        "usage": "0.3%",
+        "winrate": "30.2%"
+    },
+    {
+        "pokemon": "Spiritomb",
+        "usage": "0.3%",
+        "winrate": "30.3%"
+    },
+    {
+        "pokemon": "Slowbro",
+        "usage": "0.2%",
+        "winrate": "50.4%"
+    },
+    {
+        "pokemon": "Goodra [Hisuian Form]",
+        "usage": "0.2%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Arcanine",
+        "usage": "0.2%",
+        "winrate": "46.5%"
+    },
+    {
+        "pokemon": "Chesnaught",
+        "usage": "0.2%",
+        "winrate": "47.4%"
+    },
+    {
+        "pokemon": "Conkeldurr",
+        "usage": "0.2%",
+        "winrate": "47.1%"
+    },
+    {
+        "pokemon": "Ampharos",
+        "usage": "0.2%",
+        "winrate": "46.5%"
+    },
+    {
+        "pokemon": "Steelix",
+        "usage": "0.2%",
+        "winrate": "45.2%"
+    },
+    {
+        "pokemon": "Mudsdale",
+        "usage": "0.2%",
+        "winrate": "43.7%"
+    },
+    {
+        "pokemon": "Decidueye [Hisuian Form]",
+        "usage": "0.2%",
+        "winrate": "45.1%"
+    },
+    {
+        "pokemon": "Noivern",
+        "usage": "0.2%",
+        "winrate": "45.1%"
+    },
+    {
+        "pokemon": "Malamar",
+        "usage": "0.2%",
+        "winrate": "42.2%"
+    },
+    {
+        "pokemon": "Slowking [Galarian Form]",
+        "usage": "0.2%",
+        "winrate": "42.9%"
+    },
+    {
+        "pokemon": "Manectric",
+        "usage": "0.2%",
+        "winrate": "42.0%"
+    },
+    {
+        "pokemon": "Eelektross",
+        "usage": "0.2%",
+        "winrate": "41.2%"
+    },
+    {
+        "pokemon": "Wigglytuff",
+        "usage": "0.2%",
+        "winrate": "41.6%"
+    },
+    {
+        "pokemon": "Overqwil",
+        "usage": "0.2%",
+        "winrate": "42.2%"
+    },
+    {
+        "pokemon": "Drampa",
+        "usage": "0.2%",
+        "winrate": "39.1%"
+    },
+    {
+        "pokemon": "Skeledirge",
+        "usage": "0.2%",
+        "winrate": "39.7%"
+    },
+    {
+        "pokemon": "Meowstic",
+        "usage": "0.2%",
+        "winrate": "38.0%"
+    },
+    {
+        "pokemon": "Raichu [Alolan Form]",
+        "usage": "0.2%",
+        "winrate": "38.8%"
+    },
+    {
+        "pokemon": "Krookodile",
+        "usage": "0.2%",
+        "winrate": "39.1%"
+    },
+    {
+        "pokemon": "Chimecho",
+        "usage": "0.2%",
+        "winrate": "39.3%"
+    },
+    {
+        "pokemon": "Gliscor",
+        "usage": "0.2%",
+        "winrate": "38.8%"
+    },
+    {
+        "pokemon": "Aurorus",
+        "usage": "0.2%",
+        "winrate": "36.0%"
+    },
+    {
+        "pokemon": "Alcremie",
+        "usage": "0.2%",
+        "winrate": "35.9%"
+    },
+    {
+        "pokemon": "Bellibolt",
+        "usage": "0.2%",
+        "winrate": "36.5%"
+    },
+    {
+        "pokemon": "Starmie",
+        "usage": "0.2%",
+        "winrate": "34.5%"
+    },
+    {
+        "pokemon": "Feraligatr",
+        "usage": "0.2%",
+        "winrate": "34.7%"
+    },
+    {
+        "pokemon": "Persian [Alolan Form]",
+        "usage": "0.2%",
+        "winrate": "32.5%"
+    },
+    {
+        "pokemon": "Heliolisk",
+        "usage": "0.2%",
+        "winrate": "32.5%"
+    },
+    {
+        "pokemon": "Serperior",
+        "usage": "0.2%",
+        "winrate": "28.6%"
+    },
+    {
+        "pokemon": "Reuniclus",
+        "usage": "0.1%",
+        "winrate": "57.4%"
+    },
+    {
+        "pokemon": "Houndstone",
+        "usage": "0.1%",
+        "winrate": "57.1%"
+    },
+    {
+        "pokemon": "Quaquaval",
+        "usage": "0.1%",
+        "winrate": "55.2%"
+    },
+    {
+        "pokemon": "Barbaracle",
+        "usage": "0.1%",
+        "winrate": "59.3%"
+    },
+    {
+        "pokemon": "Heracross",
+        "usage": "0.1%",
+        "winrate": "53.8%"
+    },
+    {
+        "pokemon": "Liepard",
+        "usage": "0.1%",
+        "winrate": "57.1%"
+    },
+    {
+        "pokemon": "Hydrapple",
+        "usage": "0.1%",
+        "winrate": "53.6%"
+    },
+    {
+        "pokemon": "Bastiodon",
+        "usage": "0.1%",
+        "winrate": "53.6%"
+    },
+    {
+        "pokemon": "Arboliva",
+        "usage": "0.1%",
+        "winrate": "45.5%"
+    },
+    {
+        "pokemon": "Dragalge",
+        "usage": "0.1%",
+        "winrate": "45.5%"
+    },
+    {
+        "pokemon": "Umbreon",
+        "usage": "0.1%",
+        "winrate": "42.4%"
+    },
+    {
+        "pokemon": "Scolipede",
+        "usage": "0.1%",
+        "winrate": "43.8%"
+    },
+    {
+        "pokemon": "Beartic",
+        "usage": "0.1%",
+        "winrate": "48.3%"
+    },
+    {
+        "pokemon": "Tauros [Paldean Form (Aqua Breed)]",
+        "usage": "0.1%",
+        "winrate": "44.9%"
+    },
+    {
+        "pokemon": "Infernape",
+        "usage": "0.1%",
+        "winrate": "45.2%"
+    },
+    {
+        "pokemon": "Morpeko",
+        "usage": "0.1%",
+        "winrate": "48.1%"
+    },
+    {
+        "pokemon": "Perrserker",
+        "usage": "0.1%",
+        "winrate": "43.1%"
+    },
+    {
+        "pokemon": "Pikachu",
+        "usage": "0.1%",
+        "winrate": "41.0%"
+    },
+    {
+        "pokemon": "Trevenant",
+        "usage": "0.1%",
+        "winrate": "42.2%"
+    },
+    {
+        "pokemon": "Pidgeot",
+        "usage": "0.1%",
+        "winrate": "43.8%"
+    },
+    {
+        "pokemon": "Rhyperior",
+        "usage": "0.1%",
+        "winrate": "43.8%"
+    },
+    {
+        "pokemon": "Garganacl",
+        "usage": "0.1%",
+        "winrate": "43.3%"
+    },
+    {
+        "pokemon": "Hippowdon",
+        "usage": "0.1%",
+        "winrate": "40.5%"
+    },
+    {
+        "pokemon": "Audino",
+        "usage": "0.1%",
+        "winrate": "39.2%"
+    },
+    {
+        "pokemon": "Jolteon",
+        "usage": "0.1%",
+        "winrate": "37.7%"
+    },
+    {
+        "pokemon": "Wyrdeer",
+        "usage": "0.1%",
+        "winrate": "38.0%"
+    },
+    {
+        "pokemon": "Typhlosion",
+        "usage": "0.1%",
+        "winrate": "39.0%"
+    },
+    {
+        "pokemon": "Pangoro",
+        "usage": "0.1%",
+        "winrate": "38.5%"
+    },
+    {
+        "pokemon": "Emboar",
+        "usage": "0.1%",
+        "winrate": "41.7%"
+    },
+    {
+        "pokemon": "Slowbro [Galarian Form]",
+        "usage": "0.1%",
+        "winrate": "38.9%"
+    },
+    {
+        "pokemon": "Beedrill",
+        "usage": "0.1%",
+        "winrate": "34.3%"
+    },
+    {
+        "pokemon": "Basculegion [Female]",
+        "usage": "0.1%",
+        "winrate": "33.9%"
+    },
+    {
+        "pokemon": "Farfetch'd",
+        "usage": "0.1%",
+        "winrate": "35.7%"
+    },
+    {
+        "pokemon": "Falinks",
+        "usage": "0.1%",
+        "winrate": "37.9%"
+    },
+    {
+        "pokemon": "Torterra",
+        "usage": "0.1%",
+        "winrate": "36.1%"
+    },
+    {
+        "pokemon": "Salazzle",
+        "usage": "0.1%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Florges",
+        "usage": "0.1%",
+        "winrate": "35.3%"
+    },
+    {
+        "pokemon": "Toucannon",
+        "usage": "0.1%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Clawitzer",
+        "usage": "0.1%",
+        "winrate": "30.8%"
+    },
+    {
+        "pokemon": "Glalie",
+        "usage": "0.1%",
+        "winrate": "32.4%"
+    },
+    {
+        "pokemon": "Luxray",
+        "usage": "0.1%",
+        "winrate": "31.0%"
+    },
+    {
+        "pokemon": "Runerigus",
+        "usage": "0.1%",
+        "winrate": "30.4%"
+    },
+    {
+        "pokemon": "Mr. Rime",
+        "usage": "0.1%",
+        "winrate": "30.6%"
+    },
+    {
+        "pokemon": "Tauros [Paldean Form (Blaze Breed)]",
+        "usage": "0.1%",
+        "winrate": "29.7%"
+    },
+    {
+        "pokemon": "Swalot",
+        "usage": "0.1%",
+        "winrate": "29.4%"
+    },
+    {
+        "pokemon": "Toxicroak",
+        "usage": "0.1%",
+        "winrate": "30.0%"
+    },
+    {
+        "pokemon": "Squawkabilly",
+        "usage": "0.1%",
+        "winrate": "28.1%"
+    },
+    {
+        "pokemon": "Orthworm",
+        "usage": "0.1%",
+        "winrate": "23.5%"
+    },
+    {
+        "pokemon": "Goodra",
+        "usage": "0.1%",
+        "winrate": "22.9%"
+    },
+    {
+        "pokemon": "Decidueye",
+        "usage": "0.1%",
+        "winrate": "21.6%"
+    },
+    {
+        "pokemon": "Diggersby",
+        "usage": "0.0%",
+        "winrate": "59.1%"
+    },
+    {
+        "pokemon": "Thievul",
+        "usage": "0.0%",
+        "winrate": "66.7%"
+    },
+    {
+        "pokemon": "Tyrantrum",
+        "usage": "0.0%",
+        "winrate": "57.9%"
+    },
+    {
+        "pokemon": "Slurpuff",
+        "usage": "0.0%",
+        "winrate": "48.0%"
+    },
+    {
+        "pokemon": "Glaceon",
+        "usage": "0.0%",
+        "winrate": "44.0%"
+    },
+    {
+        "pokemon": "Emolga",
+        "usage": "0.0%",
+        "winrate": "60.0%"
+    },
+    {
+        "pokemon": "Persian",
+        "usage": "0.0%",
+        "winrate": "60.0%"
+    },
+    {
+        "pokemon": "Medicham",
+        "usage": "0.0%",
+        "winrate": "44.4%"
+    },
+    {
+        "pokemon": "Polteageist",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Gogoat",
+        "usage": "0.0%",
+        "winrate": "43.8%"
+    },
+    {
+        "pokemon": "Machamp",
+        "usage": "0.0%",
+        "winrate": "43.8%"
+    },
+    {
+        "pokemon": "Rotom [Fan Rotom]",
+        "usage": "0.0%",
+        "winrate": "45.5%"
+    },
+    {
+        "pokemon": "Ariados",
+        "usage": "0.0%",
+        "winrate": "41.2%"
+    },
+    {
+        "pokemon": "Musharna",
+        "usage": "0.0%",
+        "winrate": "42.9%"
+    },
+    {
+        "pokemon": "Stunfisk",
+        "usage": "0.0%",
+        "winrate": "38.1%"
+    },
+    {
+        "pokemon": "Sharpedo",
+        "usage": "0.0%",
+        "winrate": "38.9%"
+    },
+    {
+        "pokemon": "Aromatisse",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Watchog",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Lycanroc [Midnight Form]",
+        "usage": "0.0%",
+        "winrate": "36.8%"
+    },
+    {
+        "pokemon": "Espeon",
+        "usage": "0.0%",
+        "winrate": "37.5%"
+    },
+    {
+        "pokemon": "Lycanroc",
+        "usage": "0.0%",
+        "winrate": "38.5%"
+    },
+    {
+        "pokemon": "Mabosstiff",
+        "usage": "0.0%",
+        "winrate": "35.3%"
+    },
+    {
+        "pokemon": "Castform",
+        "usage": "0.0%",
+        "winrate": "40.0%"
+    },
+    {
+        "pokemon": "Appletun",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Simisear",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Simipour",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Vaporeon",
+        "usage": "0.0%",
+        "winrate": "31.2%"
+    },
+    {
+        "pokemon": "Garbodor",
+        "usage": "0.0%",
+        "winrate": "37.5%"
+    },
+    {
+        "pokemon": "Simisage",
+        "usage": "0.0%",
+        "winrate": "37.5%"
+    },
+    {
+        "pokemon": "Banette",
+        "usage": "0.0%",
+        "winrate": "37.5%"
+    },
+    {
+        "pokemon": "Rotom [Mow Rotom]",
+        "usage": "0.0%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Rampardos",
+        "usage": "0.0%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Victreebel",
+        "usage": "0.0%",
+        "winrate": "28.6%"
+    },
+    {
+        "pokemon": "Cofagrigus",
+        "usage": "0.0%",
+        "winrate": "25.0%"
+    },
+    {
+        "pokemon": "Avalugg",
+        "usage": "0.0%",
+        "winrate": "26.7%"
+    },
+    {
+        "pokemon": "Flapple",
+        "usage": "0.0%",
+        "winrate": "23.1%"
+    },
+    {
+        "pokemon": "Slowking",
+        "usage": "0.0%",
+        "winrate": "23.8%"
+    },
+    {
+        "pokemon": "Passimian",
+        "usage": "0.0%",
+        "winrate": "50.0%"
+    },
+    {
+        "pokemon": "Qwilfish",
+        "usage": "0.0%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Stunfisk [Galarian Form]",
+        "usage": "0.0%",
+        "winrate": "27.3%"
+    },
+    {
+        "pokemon": "Furfrou",
+        "usage": "0.0%",
+        "winrate": "28.6%"
+    },
+    {
+        "pokemon": "Gourgeist",
+        "usage": "0.0%",
+        "winrate": "21.1%"
+    },
+    {
+        "pokemon": "Rotom [Frost Rotom]",
+        "usage": "0.0%",
+        "winrate": "20.0%"
+    },
+    {
+        "pokemon": "Aegislash [Blade Forme]",
+        "usage": "0.0%",
+        "winrate": "33.3%"
+    },
+    {
+        "pokemon": "Zoroark",
+        "usage": "0.0%",
+        "winrate": "18.8%"
+    },
+    {
+        "pokemon": "Arbok",
+        "usage": "0.0%",
+        "winrate": "18.8%"
+    },
+    {
+        "pokemon": "Avalugg [Hisuian Form]",
+        "usage": "0.0%",
+        "winrate": "20.0%"
+    },
+    {
+        "pokemon": "Roserade",
+        "usage": "0.0%",
+        "winrate": "18.2%"
+    },
+    {
+        "pokemon": "Dedenne",
+        "usage": "0.0%",
+        "winrate": "25.0%"
+    },
+    {
+        "pokemon": "Forretress",
+        "usage": "0.0%",
+        "winrate": "15.4%"
+    },
+    {
+        "pokemon": "Leafeon",
+        "usage": "0.0%",
+        "winrate": "20.0%"
+    },
+    {
+        "pokemon": "Sandaconda",
+        "usage": "0.0%",
+        "winrate": "14.3%"
+    },
+    {
+        "pokemon": "Castform [Rainy Form]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Castform [Snowy Form]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Castform [Sunny Form]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Flareon",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Gourgeist [Jumbo Variety]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Gourgeist [Large Variety]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Gourgeist [Small Variety]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Palafin [Hero Form]",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Pinsir",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Rotom",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Samurott",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Tauros",
+        "usage": "—",
+        "winrate": "—"
+    },
+    {
+        "pokemon": "Tauros [Paldean Form (Combat Breed)]",
+        "usage": "—",
+        "winrate": "—"
+    }
+]
