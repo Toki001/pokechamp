@@ -110,13 +110,18 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
                   <span className="text-xs text-slate-500 font-mono">{formatDate(comment.created_at)}</span>
                 </div>
                 <p className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">{comment.content}</p>
+                
+                {/* Reply Button Aligned Right with Icon */}
                 {user && (
-                  <button 
-                    onClick={() => setReplyTo(comment.id)} 
-                    className="text-xs font-bold text-slate-500 hover:text-sky-400 transition-colors mt-3"
-                  >
-                    Reply to thread
-                  </button>
+                  <div className="flex justify-end mt-4 pt-3 border-t border-[#2e3040]/50">
+                    <button 
+                      onClick={() => setReplyTo(comment.id)} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-white rounded-lg text-xs font-bold transition-all border border-sky-500/30 shadow-sm"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                      Reply
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -153,7 +158,10 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
           <>
             {replyTo && (
               <div className="bg-sky-500/10 text-sky-400 text-xs px-4 py-3 rounded-t-xl flex justify-between items-center border border-b-0 border-sky-500/30 w-full backdrop-blur-md mb-[-1px] relative z-10">
-                <span className="font-bold">Replying to {comments.find(c => c.id === replyTo)?.author_name}</span>
+                <span className="font-bold flex items-center gap-2">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                  Replying to {comments.find(c => c.id === replyTo)?.author_name}
+                </span>
                 <button onClick={() => setReplyTo(null)} className="hover:text-white font-black">✕</button>
               </div>
             )}

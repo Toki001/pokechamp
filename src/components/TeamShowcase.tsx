@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import type { TeamSlot, BaseStats } from '../types';
-import { getPokemonImageUrl, getItemImageUrl, getTypeIconUrl, getMoveCategoryUrl, calculateLvl50StatForSlot } from '../utils/helpers';
-import { TYPE_COLORS, STAT_METADATA } from '../utils/constants';
+import { getPokemonImageUrl, getItemImageUrl, getTypeIconUrl, calculateLvl50StatForSlot } from '../utils/helpers';
+import { STAT_METADATA } from '../utils/constants';
 import TeamDiscussion from './TeamDiscussion';
 
 interface DatabaseTeam {
@@ -12,23 +12,30 @@ interface DatabaseTeam {
   created_at: string;
   roster: TeamSlot[];
   upvotes: number;
-  downvotes: number;
+  comments?: { id: string }[];
 }
+
+type SortOption = 'date-desc' | 'date-asc' | 'hearts-desc' | 'comments-desc';
 
 export default function TeamShowcase() {
   const [teams, setTeams] = useState<DatabaseTeam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState<DatabaseTeam | null>(null);
-  const [votedTeams, setVotedTeams] = useState<Record<string, 'up' | 'down'>>({});
+  const [votedTeams, setVotedTeams] = useState<Record<string, boolean>>({});
+
+  // Filtering and Sorting State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
 
   useEffect(() => {
     const fetchRecentTeams = async () => {
       setIsLoading(true);
+      // Fetch teams and their associated comment IDs to calculate total comments
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select('*, comments(id)')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(100);
 
       if (error) {
         console.error("Error fetching teams:", error);
@@ -47,41 +54,60 @@ export default function TeamShowcase() {
     });
   };
 
-  const handleVote = async (id: string, type: 'up' | 'down') => {
-    if (votedTeams[id] === type) return;
-
+  const handleHeart = async (id: string) => {
     const teamIndex = teams.findIndex(t => t.short_id === id);
     if (teamIndex === -1) return;
 
     const team = teams[teamIndex];
-    let newUp = Number(team.upvotes) || 0;
-    let newDown = Number(team.downvotes) || 0;
-
-    if (type === 'up') {
-      newUp++;
-      if (votedTeams[id] === 'down') newDown--;
-    } else {
-      newDown++;
-      if (votedTeams[id] === 'up') newUp--;
-    }
+    const isHearted = votedTeams[id];
+    const newUp = isHearted ? Math.max(0, (team.upvotes || 0) - 1) : (team.upvotes || 0) + 1;
 
     // Optimistic UI Update
-    setTeams(prev => prev.map(t => t.short_id === id ? { ...t, upvotes: newUp, downvotes: newDown } : t));
+    setTeams(prev => prev.map(t => t.short_id === id ? { ...t, upvotes: newUp } : t));
     if (selectedTeam?.short_id === id) {
-      setSelectedTeam({ ...selectedTeam, upvotes: newUp, downvotes: newDown });
+      setSelectedTeam({ ...selectedTeam, upvotes: newUp });
     }
-    setVotedTeams(prev => ({ ...prev, [id]: type }));
+    
+    setVotedTeams(prev => {
+      const next = { ...prev };
+      if (isHearted) delete next[id];
+      else next[id] = true;
+      return next;
+    });
 
     // Persist to Supabase database
     const { error } = await supabase
       .from('teams')
-      .update({ upvotes: newUp, downvotes: newDown })
+      .update({ upvotes: newUp })
       .eq('short_id', id);
 
     if (error) {
-      console.error("Failed to save vote to database:", error);
+      console.error("Failed to save heart to database:", error);
     }
   };
+
+  // Dynamically filter and sort the teams based on user selection
+  const displayedTeams = useMemo(() => {
+    let filtered = [...teams];
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(team => 
+        (team.team_name && team.team_name.toLowerCase().includes(query)) ||
+        team.roster.some(slot => slot.pokemon?.name.toLowerCase().includes(query))
+      );
+    }
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'date-desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === 'date-asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortBy === 'hearts-desc') return (b.upvotes || 0) - (a.upvotes || 0);
+      if (sortBy === 'comments-desc') return (b.comments?.length || 0) - (a.comments?.length || 0);
+      return 0;
+    });
+
+    return filtered;
+  }, [teams, searchQuery, sortBy]);
 
   if (isLoading) {
     return (
@@ -96,19 +122,46 @@ export default function TeamShowcase() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
-      <div className="mb-10 text-center">
+      <div className="mb-8 text-center">
         <h2 className="text-4xl font-black text-white mb-4">Team Showcase</h2>
         <p className="text-slate-400">Discover, analyze, and discuss the latest Pokechamp teams built by the community.</p>
       </div>
 
-      {teams.length === 0 ? (
+      {/* Filtering and Sorting Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 bg-[#13141c] p-4 rounded-2xl border border-[#2e3040] shadow-lg">
+        <div className="relative w-full sm:w-80 lg:w-[400px]">
+          <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input 
+            type="text" 
+            placeholder="Search by Team Name or Pokémon..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-3 pl-10 text-white text-sm outline-none focus:border-sky-500 transition-colors shadow-inner"
+          />
+        </div>
+        
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <span className="text-sm font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Sort By:</span>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="w-full sm:w-48 bg-[#1a1b26] border border-[#2e3040] rounded-xl p-3 text-white text-sm font-bold outline-none focus:border-sky-500 transition-colors shadow-inner cursor-pointer"
+          >
+            <option value="date-desc">Newest First</option>
+            <option value="hearts-desc">Most Hearts</option>
+            <option value="comments-desc">Most Discussed</option>
+            <option value="date-asc">Oldest First</option>
+          </select>
+        </div>
+      </div>
+
+      {displayedTeams.length === 0 ? (
         <div className="text-center py-20 bg-[#13141c] border border-[#2e3040] rounded-xl text-slate-500">
-          No teams have been shared yet. Be the first to build and save a team!
+          {teams.length === 0 ? "No teams have been shared yet. Be the first to build and save a team!" : "No teams match your search filter."}
         </div>
       ) : (
-        // Changed to lg:grid-cols-2 so it triggers the 2-column layout earlier on desktops/laptops
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {teams.map((team) => {
+          {displayedTeams.map((team) => {
             const activePokemon = team.roster.filter(slot => slot.pokemon !== null);
             if (activePokemon.length === 0) return null;
 
@@ -118,24 +171,30 @@ export default function TeamShowcase() {
                 onClick={() => setSelectedTeam(team)}
                 className="bg-[#13141c] border border-[#2e3040] rounded-xl p-4 sm:p-6 hover:border-sky-500 hover:shadow-[0_0_20px_rgba(14,165,233,0.1)] transition-all cursor-pointer group flex flex-col justify-between"
               >
-                <div className="flex justify-between items-center mb-6 border-b border-[#2e3040]/50 pb-4">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-sky-400 transition-colors truncate">
+                <div className="flex justify-between items-start sm:items-center mb-6 border-b border-[#2e3040]/50 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-sky-400 transition-colors truncate max-w-[200px] sm:max-w-[250px]">
                       {team.team_name}
                     </h3>
                     <span className="text-xs sm:text-sm text-slate-500 font-medium whitespace-nowrap">{formatDate(team.created_at)}</span>
                   </div>
+                  
+                  {/* Hearts and Comments Display */}
                   <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-bold text-slate-500">
-                    <span className="flex items-center gap-1 text-emerald-400">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7"></path></svg>
+                    <span className="flex items-center gap-1.5 text-rose-400">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                       {team.upvotes || 0}
                     </span>
-                    <span className="whitespace-nowrap">ID: {team.short_id}</span>
+                    <span className="flex items-center gap-1.5 text-sky-400">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                      {team.comments?.length || 0}
+                    </span>
+                    <span className="whitespace-nowrap hidden sm:inline border-l border-[#2e3040] pl-3 ml-1">ID: {team.short_id}</span>
                   </div>
                 </div>
 
-                {/* Horizontal Roster Strip - Fully dynamic gap and flexible layout */}
-                <div className="flex items-start justify-between sm:justify-start gap-2 sm:gap-4 xl:gap-6 w-full">
+                {/* Horizontal Roster Strip - Centered perfectly */}
+                <div className="flex items-start justify-center gap-2 sm:gap-4 xl:gap-6 w-full">
                   {activePokemon.map((slot, idx) => (
                     <div key={idx} className="flex flex-col items-center flex-1 sm:flex-none sm:w-16 xl:w-20 text-center gap-2">
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 xl:w-16 xl:h-16 flex items-center justify-center bg-[#1a1b26] rounded-full border border-[#2e3040] group-hover:border-slate-500 transition-colors flex-shrink-0">
@@ -181,24 +240,14 @@ export default function TeamShowcase() {
               </div>
               <div className="flex items-center gap-6">
                 
-                {/* Voting Controls */}
-                <div className="flex items-center bg-[#1a1b26] rounded-lg border border-[#2e3040] shadow-inner overflow-hidden">
-                  <button 
-                    onClick={() => handleVote(selectedTeam.short_id, 'up')}
-                    className={`flex items-center gap-1.5 px-4 py-2 font-black transition-colors ${votedTeams[selectedTeam.short_id] === 'up' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-[#20222e] hover:text-emerald-400'}`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7"></path></svg>
-                    {selectedTeam.upvotes || 0}
-                  </button>
-                  <div className="w-px h-5 bg-[#2e3040]"></div>
-                  <button 
-                    onClick={() => handleVote(selectedTeam.short_id, 'down')}
-                    className={`flex items-center gap-1.5 px-4 py-2 font-black transition-colors ${votedTeams[selectedTeam.short_id] === 'down' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-400 hover:bg-[#20222e] hover:text-rose-400'}`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
-                    {selectedTeam.downvotes || 0}
-                  </button>
-                </div>
+                {/* Heart Control */}
+                <button 
+                  onClick={() => handleHeart(selectedTeam.short_id)}
+                  className={`flex items-center gap-2 px-5 py-2 font-black transition-colors rounded-xl border shadow-inner ${votedTeams[selectedTeam.short_id] ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-[#1a1b26] text-slate-400 border-[#2e3040] hover:bg-[#20222e] hover:text-rose-400'}`}
+                >
+                  <svg className="w-5 h-5" fill={votedTeams[selectedTeam.short_id] ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                  {selectedTeam.upvotes || 0}
+                </button>
 
                 <button
                   onClick={() => setSelectedTeam(null)}
