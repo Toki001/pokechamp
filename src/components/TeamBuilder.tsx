@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import TeamDiscussion from './TeamDiscussion';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -64,9 +63,6 @@ export default function TeamBuilder() {
 
   const [activeMoveSlotIndex, setActiveMoveSlotIndex] = useState<number | null>(null);
   const [moveSearchQuery, setMoveSearchQuery] = useState('');
-  
-  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
-  const [itemSearchQuery, setItemSearchQuery] = useState('');
 
   const [isNatureDropdownOpen, setIsNatureDropdownOpen] = useState(false);
   const natureDropdownRef = useRef<HTMLDivElement>(null);
@@ -147,13 +143,6 @@ export default function TeamBuilder() {
     return results;
   }, [searchTerm, team]);
 
-  const filteredItems = useMemo(() => {
-    if (!itemSearchQuery.trim()) return PARSED_ITEMS_LIST;
-    const q = itemSearchQuery.toLowerCase();
-    return PARSED_ITEMS_LIST.filter(i => 
-      i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q)
-    );
-  }, [itemSearchQuery]);
 
   const filteredMoves = useMemo(() => {
     if (!activeSlot || !activeSlot.pokemon || !Array.isArray(activeSlot.pokemon.moves)) return [];
@@ -872,9 +861,12 @@ export default function TeamBuilder() {
                     <div>
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Held Item</h3>
                       <div 
-                        onClick={() => setIsItemModalOpen(true)}
-                        className="flex flex-col gap-2 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-lg p-3 cursor-pointer transition-all shadow-inner group"
-                      >
+                          onClick={() => {
+                            const item = prompt("Enter Held Item (e.g., Leftovers, Choice Band):", activeSlot.item);
+                            if (item !== null) updateActiveSlot({ item: item.trim() });
+                          }}
+                          className="flex flex-col gap-2 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-lg p-3 cursor-pointer transition-all shadow-inner group"
+                        >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded bg-[#20222e] flex items-center justify-center flex-shrink-0 group-hover:bg-[#2a2d3d] transition-colors border border-[#323445]">
                             {activeSlot.item ? (
@@ -935,8 +927,8 @@ export default function TeamBuilder() {
 
                     const rawStat = baseValue + currentSp;
                     const statAtZeroSp = calculateLvl50StatForSlot(activeSlot, key); 
-                    const mockSlotForZero = { ...activeSlot, sp: { ...activeSlot.sp, [key]: 0 } };
-                    const baseStatCalcAtZero = calculateLvl50StatForSlot(mockSlotForZero, key);
+                    
+                    totalRawStats += rawStat;
                     
                     totalRawStats += rawStat;
                     totalCalcStats += statAtZeroSp;

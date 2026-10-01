@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import type { TeamSlot, BaseStats } from '../types';
-import { getPokemonImageUrl, getItemImageUrl, getTypeIconUrl, calculateLvl50StatForSlot } from '../utils/helpers';
+import { getPokemonImageUrl, getItemImageUrl, getTypeIconUrl } from '../utils/helpers';
 import { STAT_METADATA } from '../utils/constants';
 import TeamDiscussion from './TeamDiscussion';
 
@@ -118,7 +118,6 @@ export default function TeamShowcase() {
     );
   }
 
-  const METER_ABSOLUTE_MAX = 255;
 
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
