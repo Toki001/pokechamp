@@ -51,6 +51,7 @@ export default function TeamBuilder() {
   const navigate = useNavigate();
   const { user, setAuthModalOpen } = useAuth();
 
+  const [teamName, setTeamName] = useState('My Team');
   const [team, setTeam] = useState<TeamSlot[]>(INITIAL_TEAM);
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,6 +70,11 @@ export default function TeamBuilder() {
 
   const [isNatureDropdownOpen, setIsNatureDropdownOpen] = useState(false);
   const natureDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Import Modal State updated for Hybrid Input
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importInput, setImportInput] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -90,7 +96,7 @@ export default function TeamBuilder() {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('teams')
-        .select('roster')
+        .select('roster, team_name')
         .eq('short_id', teamId)
         .single();
 
@@ -99,6 +105,7 @@ export default function TeamBuilder() {
         navigate('/');
       } else if (data.roster) {
         setTeam(data.roster as TeamSlot[]);
+        setTeamName(data.team_name || 'Imported Team');
         setShareableLink(`${window.location.origin}/team/${teamId}`);
       }
       setIsLoading(false);
@@ -226,6 +233,200 @@ export default function TeamBuilder() {
     updateActiveSlot({ selectedMoves: updatedMoves });
   };
 
+  const handleExportPokepaste = () => {
+    if (team.every((slot) => slot.pokemon === null)) {
+      alert('Cannot export an empty team!');
+      return;
+    }
+
+    const statKeys = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+    let pasteText = '';
+
+    team.forEach(slot => {
+      if (!slot.pokemon) return;
+      pasteText += `${slot.pokemon.name}${slot.item ? ` @ ${slot.item}` : ''}\n`;
+      if (slot.selectedAbility) pasteText += `Ability: ${slot.selectedAbility}\n`;
+      pasteText += `Level: 50\n`; 
+
+      const evs: string[] = [];
+      (Object.keys(slot.sp) as (keyof BaseStats)[]).forEach(k => {
+        if (slot.sp[k] > 0) evs.push(`${slot.sp[k]} ${statKeys[k]}`);
+      });
+      if (evs.length > 0) pasteText += `EVs: ${evs.join(' / ')}\n`;
+
+      pasteText += `${slot.nature.name} Nature\n`;
+
+      slot.selectedMoves.forEach(m => {
+        if (m) pasteText += `- ${m}\n`;
+      });
+      pasteText += '\n';
+    });
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://pokepast.es/create';
+    form.target = '_blank';
+
+    const pasteInput = document.createElement('input');
+    pasteInput.type = 'hidden';
+    pasteInput.name = 'paste';
+    pasteInput.value = pasteText.trim();
+    form.appendChild(pasteInput);
+
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'title';
+    titleInput.value = teamName || 'Pokechamp Export';
+    form.appendChild(titleInput);
+
+    const authorInput = document.createElement('input');
+    authorInput.type = 'hidden';
+    authorInput.name = 'author';
+    authorInput.value = user ? (user.email?.split('@')[0] || 'Trainer') : 'Guest';
+    form.appendChild(authorInput);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  };
+
+  const handleImport = async () => {
+    if (!importInput.trim()) return;
+    setIsImporting(true);
+
+    let rawText = '';
+    let extractedTitle = 'Imported Team';
+
+    // Step 1: Detect if the user pasted a Pokepaste URL instead of raw text
+    if (importInput.includes('pokepast.es')) {
+      const match = importInput.match(/pokepast\.es\/([a-zA-Z0-9]+)/);
+      if (match) {
+        const pasteId = match[1];
+        const pasteUrl = `https://pokepast.es/${pasteId}`;
+        try {
+          const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(pasteUrl)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.contents) {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(data.contents, 'text/html');
+              extractedTitle = doc.querySelector('aside h1')?.textContent?.trim() || 'Imported Team';
+              
+              const pres = Array.from(doc.querySelectorAll('article pre'));
+              rawText = pres.map(pre => pre.textContent || '').join('\n\n');
+            }
+          }
+        } catch (e) {
+          console.warn("Proxy connection refused. Pokepaste is blocking automated requests.");
+        }
+      }
+
+      // Fallback if the proxy gets blocked by Cloudflare (522 / 403 errors)
+      if (!rawText) {
+        setIsImporting(false);
+        alert("Poképaste's security blocked the connection.\n\nPlease open the Poképaste link, copy the text itself, and paste it directly into this box instead!");
+        return;
+      }
+    } else {
+      // Step 2: The user correctly pasted the raw Showdown text directly
+      rawText = importInput;
+    }
+
+    // Step 3: Robust Parsing Engine for Raw Showdown Text
+    try {
+      // Split by double newlines to isolate each Pokemon block
+      const blocks = rawText.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+      const newTeam = [...INITIAL_TEAM];
+
+      blocks.forEach((block, idx) => {
+        if (idx >= 6) return; 
+        
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length === 0) return;
+
+        const firstLine = lines[0];
+        let pokemonName = firstLine.split('@')[0].trim();
+        let item = firstLine.split('@')[1]?.trim() || '';
+
+        // Handle Nicknames (e.g. "Nickname (RealName)")
+        if (pokemonName.includes('(') && pokemonName.includes(')')) {
+          const match = pokemonName.match(/\((.*?)\)/);
+          if (match) pokemonName = match[1].trim();
+        }
+        
+        // Strip genders
+        pokemonName = pokemonName.replace(/\(M\)|\(F\)/g, '').trim();
+
+        // Exact Match Search
+        let mon = PARSED_CHAMPIONS_LIST.find(p => p.name.toLowerCase() === pokemonName.toLowerCase());
+        
+        // Smart Fallback Match (Strips suffixes like -White, -Mega-Z to grab the base Pokémon)
+        if (!mon && pokemonName.includes('-')) {
+          const baseName = pokemonName.split('-')[0];
+          mon = PARSED_CHAMPIONS_LIST.find(p => p.name.toLowerCase() === baseName.toLowerCase());
+        }
+
+        if (!mon) {
+          console.warn(`Could not find a match for Pokemon: ${pokemonName}. Skipping slot.`);
+          return; 
+        }
+
+        const slot: TeamSlot = {
+          pokemon: mon,
+          nature: DEFAULT_NATURE,
+          sp: { ...DEFAULT_SP },
+          selectedAbility: '',
+          selectedMoves: [null, null, null, null],
+          item: item
+        };
+
+        let moveIdx = 0;
+
+        lines.slice(1).forEach(line => {
+          if (line.startsWith('Ability:')) {
+            slot.selectedAbility = line.replace('Ability:', '').trim();
+          } else if (line.startsWith('EVs:')) {
+            const evParts = line.replace('EVs:', '').split('/');
+            evParts.forEach(part => {
+              const [val, stat] = part.trim().split(' ');
+              const num = parseInt(val);
+              if (isNaN(num)) return;
+              const s = stat.toLowerCase();
+              if (s.includes('hp')) slot.sp.hp = num;
+              if (s.includes('atk')) slot.sp.atk = num;
+              if (s.includes('def')) slot.sp.def = num;
+              if (s.includes('spa')) slot.sp.spa = num;
+              if (s.includes('spd')) slot.sp.spd = num;
+              if (s.includes('spe')) slot.sp.spe = num;
+            });
+          } else if (line.includes(' Nature')) {
+            const natureName = line.replace('Nature', '').trim();
+            const nature = NATURES.find(n => n.name.toLowerCase() === natureName.toLowerCase());
+            if (nature) slot.nature = nature;
+          } else if (line.startsWith('-')) {
+            if (moveIdx < 4) {
+              slot.selectedMoves[moveIdx] = line.replace(/^-/, '').trim();
+              moveIdx++;
+            }
+          }
+        });
+
+        newTeam[idx] = slot;
+      });
+
+      setTeam(newTeam);
+      if (extractedTitle !== 'Imported Team') setTeamName(extractedTitle);
+      setIsImportModalOpen(false);
+      setImportInput('');
+
+    } catch (err: any) {
+      console.error(err);
+      alert('Failed to parse the team format. Ensure you pasted valid Showdown text.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const saveTeamToCloud = async () => {
     if (!user) {
       setAuthModalOpen(true);
@@ -243,7 +444,7 @@ export default function TeamBuilder() {
     const { error } = await supabase.from('teams').insert([
       {
         short_id: shortId,
-        team_name: `${activeSlot.pokemon?.name || 'Championship'}'s Team`,
+        team_name: teamName || 'My Team',
         roster: team,
         user_id: user.id
       }
@@ -274,16 +475,42 @@ export default function TeamBuilder() {
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
       
-      {/* Top Header - Mobile Fixes Applied (flex-col sm:flex-row) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 className="text-2xl font-black text-white tracking-tight">Team Roster</h2>
-        <button
-          onClick={saveTeamToCloud}
-          disabled={isSaving}
-          className="w-full sm:w-auto px-8 py-3 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-xl shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all flex items-center justify-center tracking-wider disabled:opacity-50"
-        >
-          {isSaving ? 'SAVING...' : 'SAVE & SHARE TEAM'}
-        </button>
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#13141c] border border-[#2e3040] p-4 sm:p-6 rounded-2xl shadow-lg">
+        <div className="w-full md:w-1/2 flex items-center gap-3">
+          <svg className="w-6 h-6 text-slate-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+          <input
+            type="text"
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            placeholder="Name your team..."
+            className="w-full bg-transparent border-b-2 border-transparent hover:border-[#2e3040] focus:border-sky-500 text-2xl sm:text-3xl font-black text-white tracking-tight outline-none pb-1 transition-colors px-1"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-[#1a1b26] hover:bg-[#20222e] border border-[#2e3040] text-slate-300 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            Import
+          </button>
+          <button
+            onClick={handleExportPokepaste}
+            className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-[#1a1b26] hover:bg-[#20222e] border border-[#2e3040] text-slate-300 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Export
+          </button>
+          <button
+            onClick={saveTeamToCloud}
+            disabled={isSaving}
+            className="w-full md:w-auto px-6 sm:px-8 py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-xl shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all flex items-center justify-center tracking-wider disabled:opacity-50 text-sm mt-2 md:mt-0"
+          >
+            {isSaving ? 'SAVING...' : 'SAVE TEAM'}
+          </button>
+        </div>
       </div>
 
       {shareableLink && (
@@ -970,6 +1197,41 @@ export default function TeamBuilder() {
 
       </div>
 
+      {/* Import Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#13141c] border border-[#2e3040] rounded-2xl max-w-md w-full p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+            <button 
+              onClick={() => {
+                setIsImportModalOpen(false);
+                setImportInput('');
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#1a1b26] text-slate-400 hover:text-white hover:bg-rose-500 transition-colors flex items-center justify-center border border-[#2e3040]"
+            >
+              ✕
+            </button>
+            <h3 className="text-2xl font-black text-white mb-2 text-center">Import Team</h3>
+            <p className="text-slate-400 text-sm text-center mb-6">Paste a Poképaste URL, or paste your raw Showdown text directly below.</p>
+            
+            <textarea
+              placeholder="https://pokepast.es/... OR paste raw Showdown text here"
+              value={importInput}
+              onChange={(e) => setImportInput(e.target.value)}
+              rows={6}
+              className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 text-white text-sm outline-none focus:border-sky-500 transition-colors shadow-inner mb-4 resize-none custom-scrollbar"
+            />
+            
+            <button
+              onClick={handleImport}
+              disabled={isImporting || !importInput.trim()}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black py-4 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {isImporting ? 'EXTRACTING DATA...' : 'IMPORT ROSTER'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Move Selection Modal Overlay */}
       {activeMoveSlotIndex !== null && activeSlot.pokemon && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1007,7 +1269,6 @@ export default function TeamBuilder() {
                   onClick={() => handleSelectMove(m.name)}
                   className="p-4 sm:p-5 bg-[#13141c] border border-[#2e3040] hover:border-sky-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group flex flex-col gap-3"
                 >
-                  {/* Mobile Row Stacking for Move List inside Modal */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
