@@ -58,7 +58,7 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
     
     const payload: any = {
       team_id: teamId,
-      author_name: authorName.trim() || user.email?.split('@')[0] || 'Trainer',
+      author_name: authorName.trim() || user.user_metadata?.username || user.email?.split('@')[0] || 'Trainer',
       content: newComment.trim(),
       user_id: user.id
     };
@@ -111,18 +111,22 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
                 </div>
                 <p className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">{comment.content}</p>
                 
-                {/* Reply Button Aligned Right with Icon */}
-                {user && (
-                  <div className="flex justify-end mt-4 pt-3 border-t border-[#2e3040]/50">
-                    <button 
-                      onClick={() => setReplyTo(comment.id)} 
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-white rounded-lg text-xs font-bold transition-all border border-sky-500/30 shadow-sm"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-                      Reply
-                    </button>
-                  </div>
-                )}
+                {/* Reply Button Aligned Right with Icon - ALWAYS VISIBLE */}
+                <div className="flex justify-end mt-4 pt-3 border-t border-[#2e3040]/50">
+                  <button 
+                    onClick={() => {
+                      if (user) {
+                        setReplyTo(comment.id);
+                      } else {
+                        setAuthModalOpen(true);
+                      }
+                    }} 
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-white rounded-lg text-xs font-bold transition-all border border-sky-500/30 shadow-sm"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                    Reply
+                  </button>
+                </div>
               </div>
 
               {getReplies(comment.id).length > 0 && (
@@ -151,7 +155,7 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
               onClick={() => setAuthModalOpen(true)}
               className="px-8 py-3 bg-sky-500 text-white font-black rounded-xl hover:bg-sky-400 transition-colors shadow-lg uppercase tracking-widest text-sm"
             >
-              Sign In / Sign Up
+              Log In / Sign Up
             </button>
           </div>
         ) : (
@@ -169,7 +173,7 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
             <form onSubmit={handlePostComment} className="flex flex-col gap-3">
               <input
                 type="text"
-                placeholder="Display Name (Defaults to Email)"
+                placeholder="Display Name (Defaults to Username)"
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 className={`w-full bg-[#1a1b26] border border-[#2e3040] ${replyTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'} p-4 text-white text-sm outline-none focus:border-sky-500 transition-colors shadow-sm`}

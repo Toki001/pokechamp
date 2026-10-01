@@ -8,6 +8,8 @@ interface AuthContextType {
   loading: boolean;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
+  isLoginView: boolean;
+  setIsLoginView: (isLogin: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +18,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isLoginView, setIsLoginView] = useState(true);
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -33,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, authModalOpen, setAuthModalOpen }}>
+    <AuthContext.Provider value={{ user, loading, authModalOpen, setAuthModalOpen, isLoginView, setIsLoginView }}>
       {children}
     </AuthContext.Provider>
   );

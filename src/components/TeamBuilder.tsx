@@ -475,17 +475,32 @@ export default function TeamBuilder() {
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
       
-      {/* Top Header */}
+      {/* Top Header - Updated Team Name Input Container */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#13141c] border border-[#2e3040] p-4 sm:p-6 rounded-2xl shadow-lg">
-        <div className="w-full md:w-1/2 flex items-center gap-3">
-          <svg className="w-6 h-6 text-slate-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        
+        <div className="w-full md:w-[45%] xl:w-1/3 flex items-center bg-[#1a1b26] border border-[#2e3040] rounded-xl px-4 py-2.5 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 transition-all shadow-inner">
+          <svg className="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
           <input
             type="text"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
             placeholder="Name your team..."
-            className="w-full bg-transparent border-b-2 border-transparent hover:border-[#2e3040] focus:border-sky-500 text-2xl sm:text-3xl font-black text-white tracking-tight outline-none pb-1 transition-colors px-1"
+            className="w-full bg-transparent text-xl font-black text-white tracking-tight outline-none placeholder:text-slate-600"
           />
+          {teamName && (
+            <button 
+              onClick={() => setTeamName('')}
+              className="ml-2 text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0 focus:outline-none"
+              title="Clear team name"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
