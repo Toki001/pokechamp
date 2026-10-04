@@ -1,0 +1,36 @@
+# PokéChamp
+
+> Competitive Pokémon team builder, showcase, and meta analytics platform for championship-format battles.
+
+## Pages
+
+- [Team Builder](https://pokechamp-tau.vercel.app/): Build competitive Pokémon teams with full moveset, item, nature, ability, and stat point configuration. Includes defensive type coverage analysis.
+- [Team Showcase](https://pokechamp-tau.vercel.app/team-showcase): Browse, share, and discuss community-submitted competitive Pokémon teams. Features upvoting and threaded discussion.
+- [Meta Analytics](https://pokechamp-tau.vercel.app/analytics): Championship meta data with usage tiers, top movesets, held items, abilities, natures, stat point spreads, common teammates, and win/loss matchup analysis for 262 competitive Pokémon.
+
+## Features
+
+- Full 6-slot team builder with drag-and-drop reordering
+- Move selection from championship-legal move pools with type, category, power, accuracy, and PP
+- Nature selection with +10%/-10% stat modifier previews
+- Held item selector with item descriptions and sprites
+- Ability selector with full ability descriptions
+- Stat Point (SP) allocation engine with Level 50 stat calculator
+- Defensive type coverage matrix for full team analysis
+- Shared weaknesses and unresisted type warnings
+- Team import from Poképaste URLs or raw Showdown format text
+- Team export to Poképaste
+- Cloud save with shareable team links
+- Community team showcase with hearts (upvotes) and threaded discussion
+- Championship meta analytics: ranked Pokémon usage, top moves, items, abilities, natures, SP spreads
+- Matchup data: common teammates, consistently beats, often loses to
+- Winning blows and fatal flaws move analysis
+
+## Technical Details
+
+- Built with React 19, TypeScript, Vite, and TailwindCSS
+- Backend: Supabase (PostgreSQL with real-time subscriptions)
+- Deployed on Vercel
+- 262 competitive Pokémon from the championship Pokédex
+- 166 held items, 18 type icons, move category icons
+- All Pokémon sprites in WebP format

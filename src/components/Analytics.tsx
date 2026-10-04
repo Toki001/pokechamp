@@ -128,6 +128,7 @@ export default function Analytics() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-6 flex flex-col lg:flex-row gap-4 sm:gap-6 h-[calc(100vh-80px)] lg:h-[calc(100vh-120px)]">
+      <h1 className="sr-only">Championship Meta Analytics</h1>
       
       {/* LEFT SIDEBAR: Thinner Master Leaderboard List to remove dead space */}
       <div className="w-full lg:w-[320px] h-[35vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
@@ -155,6 +156,7 @@ export default function Analytics() {
                 <img 
                   src={getPokemonImageUrl(mon.pokemon)} 
                   alt={mon.pokemon} 
+                  loading="lazy"
                   className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-lg"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
@@ -180,6 +182,7 @@ export default function Analytics() {
             <img 
               src={getPokemonImageUrl(activeMon.pokemon)} 
               alt={activeMon.pokemon} 
+              loading="lazy"
               className="w-16 h-16 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
@@ -189,7 +192,7 @@ export default function Analytics() {
               <span className="bg-sky-500 text-slate-950 font-black text-xs sm:text-sm px-3 py-1 rounded-full">
                 Rank {activeMon.rank}
               </span>
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">{activeMon.pokemon}</h1>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">{activeMon.pokemon}</h2>
             </div>
             <div className="flex justify-center sm:justify-start gap-2 sm:gap-4 mt-2 sm:mt-3">
               {activeMon.types.map(t => <TypeBadge key={t} type={t} large={true} />)}

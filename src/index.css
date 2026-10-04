@@ -6,3 +6,84 @@
 body {
   @apply bg-slate-900 text-slate-200 antialiased;
 }
+
+/* Prevent horizontal overflow on all viewports */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Smooth scrolling for anchor navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure minimum touch target size for interactive elements (WCAG 2.5.8) */
+@layer base {
+  button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exception for inline text links and compact UI elements */
+  nav a, .compact-touch {
+    min-height: auto;
+    min-width: auto;
+  }
+}
+
+/* CLS prevention: reserve space for common image containers */
+.pokemon-sprite-container {
+  aspect-ratio: 1 / 1;
+  contain: layout;
+}
+
+/* Optimize rendering for off-screen content */
+.lazy-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Custom scrollbar for webkit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Screen reader only utility for visually-hidden H1 tags */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible styles for keyboard navigation (accessibility + SEO UX signal) */
+:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* Mobile responsiveness: prevent content overflow */
+@media (max-width: 374px) {
+  body {
+    font-size: 14px;
+  }
+  .max-w-\[1400px\] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}

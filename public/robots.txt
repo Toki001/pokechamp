@@ -1,0 +1,9 @@
+# PokéChamp - Competitive Pokémon Team Builder
+# https://pokechamp-tau.vercel.app
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://pokechamp-tau.vercel.app/sitemap.xml

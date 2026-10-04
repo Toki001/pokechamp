@@ -4,6 +4,9 @@ import TeamShowcase from './components/TeamShowcase';
 import Analytics from './components/Analytics';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
+import SEOHead from './components/SEOHead';
+import SchemaMarkup from './components/SchemaMarkup';
+import Footer from './components/Footer';
 import { supabase } from './utils/supabaseClient';
 
 // Inner component to access AuthContext and Location for the Header
@@ -23,6 +26,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0b0c10]">
+      {/* SEO: Dynamic per-route meta tags, canonical URLs, and schema markup */}
+      <SEOHead />
+      <SchemaMarkup />
       {/* Global Navigation - Fully Responsive & Vertically Aligned */}
       <header className="bg-[#13141c] border-b border-[#2e3040] shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 py-3 lg:py-0">
@@ -112,6 +118,9 @@ function AppContent() {
         </Routes>
       </main>
       
+      {/* Site Footer with internal links */}
+      <Footer />
+
       {/* Global Auth Modal */}
       <AuthModal />
     </div>

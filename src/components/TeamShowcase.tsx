@@ -113,7 +113,7 @@ export default function TeamShowcase() {
     return (
       <div className="w-full max-w-[1400px] mx-auto text-center py-32 flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-[#2e3040] border-t-sky-500 rounded-full animate-spin"></div>
-        <h2 className="text-xl font-bold text-slate-400 animate-pulse">Loading Team Showcase...</h2>
+        <h1 className="text-xl font-bold text-slate-400 animate-pulse">Loading Team Showcase...</h1>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function TeamShowcase() {
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
       <div className="mb-8 text-center">
-        <h2 className="text-4xl font-black text-white mb-4">Team Showcase</h2>
+        <h1 className="text-4xl font-black text-white mb-4">Team Showcase</h1>
         <p className="text-slate-400">Discover, analyze, and discuss the latest Pokechamp teams built by the community.</p>
       </div>
 
@@ -200,12 +200,13 @@ export default function TeamShowcase() {
                         <img 
                           src={getPokemonImageUrl(slot.pokemon!.name)} 
                           alt={slot.pokemon!.name} 
+                          loading="lazy"
                           className="w-8 h-8 sm:w-10 sm:h-10 xl:w-12 xl:h-12 object-contain drop-shadow-md"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                         {slot.item && (
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6 bg-[#20222e] rounded-full border border-[#2e3040] flex items-center justify-center shadow-lg">
-                            <img src={getItemImageUrl(slot.item)} alt="Item" className="w-2.5 h-2.5 sm:w-3 sm:h-3 xl:w-4 xl:h-4 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                            <img src={getItemImageUrl(slot.item)} alt={slot.item} loading="lazy" className="w-2.5 h-2.5 sm:w-3 sm:h-3 xl:w-4 xl:h-4 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         )}
                       </div>

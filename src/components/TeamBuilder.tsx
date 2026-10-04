@@ -463,7 +463,7 @@ export default function TeamBuilder() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
-      
+      <h1 className="sr-only">Competitive Pokémon Team Builder</h1>
       {/* Top Header - Updated Team Name Input Container */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#13141c] border border-[#2e3040] p-4 sm:p-6 rounded-2xl shadow-lg">
         
@@ -754,6 +754,7 @@ export default function TeamBuilder() {
                               <img
                                 src={getPokemonImageUrl(mon.name)}
                                 alt={mon.name}
+                                loading="lazy"
                                 className="w-10 h-10 object-contain drop-shadow-md flex-shrink-0"
                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                               />
@@ -788,7 +789,7 @@ export default function TeamBuilder() {
                 {/* Header: Change Pokémon Button - Mobile Stacked */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-[#2e3040] pb-6">
                   <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <img src={getPokemonImageUrl(activeSlot.pokemon.name)} className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-md" alt="" />
+                    <img src={getPokemonImageUrl(activeSlot.pokemon.name)} className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-md" alt={activeSlot.pokemon.name} />
                     <span className="truncate">{activeSlot.pokemon.name} Setup</span>
                   </h2>
                   <button
@@ -1111,7 +1112,7 @@ export default function TeamBuilder() {
                 <div className="flex flex-wrap gap-2 xl:gap-3 min-h-[28px]">
                   {sharedWeaknesses.length > 0 ? sharedWeaknesses.map(d => (
                     <div key={d.type} className="flex items-center gap-2 bg-rose-500/10 text-rose-400 px-2 xl:px-3 py-1.5 rounded border border-rose-500/30">
-                      <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} className="w-4 h-4 xl:w-5 xl:h-5 opacity-90 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-4 h-4 xl:w-5 xl:h-5 opacity-90 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                       <span className="text-[11px] font-black">{d.weakCount}</span>
                     </div>
                   )) : <span className="text-xs text-slate-600 font-bold italic py-1">None</span>}
@@ -1125,7 +1126,7 @@ export default function TeamBuilder() {
                 </h4>
                 <div className="flex flex-wrap gap-2 xl:gap-3 min-h-[24px]">
                   {unresisted.length > 0 ? unresisted.map(d => (
-                    <img key={d.type} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <img key={d.type} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                   )) : <span className="text-xs text-slate-600 font-bold italic py-1">None</span>}
                 </div>
               </div>
@@ -1163,7 +1164,7 @@ export default function TeamBuilder() {
                     <div key={d.type} className="flex items-center justify-between py-1.5 border-b border-[#2e3040]/40 hover:bg-[#1a1b26] rounded-md px-1 -mx-1 transition-colors">
                       <div className="flex items-center">
                         <div className="w-6 xl:w-8 flex justify-center flex-shrink-0">
-                          <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                          <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                         </div>
                         
                         {d.row.map((r, i) => {
