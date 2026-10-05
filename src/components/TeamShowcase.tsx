@@ -12,6 +12,7 @@ interface DatabaseTeam {
   created_at: string;
   roster: TeamSlot[];
   upvotes: number;
+  format?: 'doubles' | 'singles';
   comments?: { id: string }[];
 }
 
@@ -26,6 +27,7 @@ export default function TeamShowcase() {
   // Filtering and Sorting State
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [formatFilter, setFormatFilter] = useState<'all' | 'doubles' | 'singles'>('all');
 
   useEffect(() => {
     const fetchRecentTeams = async () => {
@@ -97,6 +99,10 @@ export default function TeamShowcase() {
         team.roster.some(slot => slot.pokemon?.name.toLowerCase().includes(query))
       );
     }
+    
+    if (formatFilter !== 'all') {
+      filtered = filtered.filter(team => team.format === formatFilter || (formatFilter === 'doubles' && !team.format));
+    }
 
     filtered.sort((a, b) => {
       if (sortBy === 'date-desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -127,8 +133,8 @@ export default function TeamShowcase() {
       </div>
 
       {/* Filtering and Sorting Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 bg-[#13141c] p-4 rounded-2xl border border-[#2e3040] shadow-lg">
-        <div className="relative w-full sm:w-80 lg:w-[400px]">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-[#13141c] p-4 rounded-2xl border border-[#2e3040] shadow-lg">
+        <div className="relative w-full md:w-80 lg:w-[400px]">
           <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input 
             type="text" 
@@ -139,18 +145,41 @@ export default function TeamShowcase() {
           />
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <span className="text-sm font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Sort By:</span>
-          <select 
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="w-full sm:w-48 bg-[#1a1b26] border border-[#2e3040] rounded-xl p-3 text-white text-sm font-bold outline-none focus:border-sky-500 transition-colors shadow-inner cursor-pointer"
-          >
-            <option value="date-desc">Newest First</option>
-            <option value="hearts-desc">Most Hearts</option>
-            <option value="comments-desc">Most Discussed</option>
-            <option value="date-asc">Oldest First</option>
-          </select>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="flex bg-[#1a1b26] p-1 rounded-xl border border-[#2e3040] flex-shrink-0 w-full sm:w-auto">
+            <button 
+              onClick={() => setFormatFilter('all')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'all' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
+            >
+              All
+            </button>
+            <button 
+              onClick={() => setFormatFilter('doubles')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'doubles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
+            >
+              Doubles
+            </button>
+            <button 
+              onClick={() => setFormatFilter('singles')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'singles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
+            >
+              Singles
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest hidden lg:block">Sort By:</span>
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="w-full sm:w-48 bg-[#1a1b26] border border-[#2e3040] rounded-xl p-2.5 text-white text-sm font-bold outline-none focus:border-sky-500 transition-colors shadow-inner cursor-pointer"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="hearts-desc">Most Hearts</option>
+              <option value="comments-desc">Most Discussed</option>
+              <option value="date-asc">Oldest First</option>
+            </select>
+          </div>
         </div>
       </div>
 

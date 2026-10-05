@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import rawMetaStats from '../data/metaroll_stats.json';
 import { TYPE_COLORS } from '../utils/constants';
-import { getPokemonImageUrl, getTypeIconUrl } from '../utils/helpers';
+import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl } from '../utils/helpers';
 
 interface UsageItem { name: string; usage: string; type?: string; }
 interface MatchupItem { rank: string; name: string; }
@@ -46,14 +46,24 @@ const TypeBadge = ({ type, large = false }: { type: string, large?: boolean }) =
 export default function Analytics() {
   const [metaStats, setMetaStats] = useState<MetaPokemon[]>([]);
   const [activeMon, setActiveMon] = useState<MetaPokemon | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (rawMetaStats && Array.isArray(rawMetaStats)) {
-      const parsedStats = rawMetaStats as MetaPokemon[];
-      setMetaStats(parsedStats);
-      if (parsedStats.length > 0) setActiveMon(parsedStats[0]);
+    setIsLoading(true);
+    const rawData = rawMetaStats as any;
+    const formatData = rawData.doubles || [];
+    setMetaStats(formatData);
+    if (formatData.length > 0) {
+      setActiveMon(formatData[0]);
+    } else {
+      setActiveMon(null);
     }
+    setIsLoading(false);
   }, []);
+
+  const lastUpdated = (rawMetaStats as any).meta?.last_updated 
+    ? new Date((rawMetaStats as any).meta.last_updated).toLocaleString() 
+    : 'Unknown';
 
   const MiniSprite = ({ name }: { name: string }) => (
     <img 
@@ -64,7 +74,7 @@ export default function Analytics() {
     />
   );
 
-  const UsageBar = ({ label, usage, type, rank }: { label: string; usage: string; type?: string; rank?: number }) => {
+  const UsageBar = ({ label, usage, type, rank, isItem }: { label: string; usage: string; type?: string; rank?: number; isItem?: boolean }) => {
     const percentage = parseFloat(usage);
     return (
       <div className="flex items-center gap-3 text-xs sm:text-sm py-2 border-b border-[#2e3040]/50 last:border-0 hover:bg-[#20222e]/40 transition-colors px-2 -mx-2">
@@ -72,11 +82,16 @@ export default function Analytics() {
           <span className="text-slate-500 font-black font-mono w-4 sm:w-5 text-right flex-shrink-0">{rank}.</span>
         )}
         {type && (
-          <div className="w-[80px] sm:w-[100px] flex-shrink-0 flex">
-            <TypeBadge type={type} />
+          <div className="flex-shrink-0 flex items-center justify-center bg-[#20222e] rounded-full p-1 border border-[#2e3040]" title={type}>
+            <img src={getTypeIconUrl(type)} alt={type} className="w-5 h-5 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           </div>
         )}
-        <span className="text-slate-200 font-bold truncate flex-grow">{label}</span>
+        {isItem && (
+          <div className="flex-shrink-0 flex items-center justify-center">
+            <img src={getItemImageUrl(label)} alt={label} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          </div>
+        )}
+        <span className="text-slate-200 font-bold whitespace-normal break-words flex-grow">{label}</span>
         <div className="hidden sm:block w-16 md:w-28 h-1.5 bg-[#13141c] border border-[#2e3040] rounded-full overflow-hidden flex-shrink-0 shadow-inner">
           <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${percentage}%` }}></div>
         </div>
@@ -117,7 +132,7 @@ export default function Analytics() {
     </div>
   );
 
-  if (metaStats.length === 0 || !activeMon) {
+  if (isLoading) {
     return (
       <div className="w-full max-w-[1400px] mx-auto text-center py-32 flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-slate-700 border-t-sky-500 rounded-full animate-spin"></div>
@@ -133,24 +148,30 @@ export default function Analytics() {
       {/* LEFT SIDEBAR: Thinner Master Leaderboard List to remove dead space */}
       <div className="w-full lg:w-[320px] h-[35vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
         <div className="p-3 sm:p-4 border-b border-[#2e3040] bg-[#1a1b26] z-10 shadow-md">
-          <h2 className="text-lg sm:text-xl font-black text-white">Championship Meta</h2>
-          <p className="text-[10px] sm:text-xs text-slate-400 mt-1">Live competitive usage statistics</p>
+          <h2 className="text-lg sm:text-xl font-black text-white">Doubles Meta</h2>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-1 mb-3">Live competitive usage statistics.</p>
+          <p className="text-[10px] sm:text-xs text-sky-400 font-bold bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">Last Updated: {lastUpdated}</p>
         </div>
         
         <div className="overflow-y-auto flex-1 custom-scrollbar">
-          {metaStats.map((mon) => (
+          {metaStats.length === 0 ? (
+            <div className="p-6 text-center text-slate-500 text-sm border-b border-[#2e3040]">
+              <p className="mb-2">No data available.</p>
+              <p className="text-xs text-slate-600">Please check back later.</p>
+            </div>
+          ) : metaStats.map((mon) => (
             <button
               key={mon.pokemon}
               onClick={() => setActiveMon(mon)}
               onMouseEnter={() => setActiveMon(mon)}
               className={`w-full flex items-center justify-between p-2 sm:p-3 border-b border-[#2e3040] transition-all text-left ${
-                activeMon.pokemon === mon.pokemon 
+                activeMon?.pokemon === mon.pokemon 
                   ? 'bg-sky-500/10 border-l-4 border-l-sky-500' 
                   : 'hover:bg-[#1a1b26] border-l-4 border-l-transparent'
               }`}
             >
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className={`text-xs sm:text-sm font-black w-6 text-center ${activeMon.pokemon === mon.pokemon ? 'text-sky-400' : 'text-slate-500'}`}>
+                <span className={`text-xs sm:text-sm font-black w-6 text-center ${activeMon?.pokemon === mon.pokemon ? 'text-sky-400' : 'text-slate-500'}`}>
                   {mon.rank}
                 </span>
                 <img 
@@ -176,14 +197,21 @@ export default function Analytics() {
       <div className="flex-1 min-w-0 h-[50vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
         
         {/* Detail Header */}
-        <div className="sticky top-0 z-20 bg-[#13141c]/95 backdrop-blur border-b border-[#2e3040] p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 shadow-md">
-          <div className="relative flex-shrink-0">
-            <div className="absolute -inset-4 bg-sky-500/20 rounded-full blur-xl z-0"></div>
-            <img 
-              src={getPokemonImageUrl(activeMon.pokemon)} 
-              alt={activeMon.pokemon} 
-              loading="lazy"
-              className="w-16 h-16 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl"
+        {!activeMon ? (
+          <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center mt-32">
+            <h2 className="text-xl font-bold mb-2">No Pokémon Selected</h2>
+            <p className="text-sm">Select a Pokémon from the list to view its meta statistics.</p>
+          </div>
+        ) : (
+          <>
+            <div className="sticky top-0 z-20 bg-[#13141c]/95 backdrop-blur border-b border-[#2e3040] p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 shadow-md">
+              <div className="relative flex-shrink-0">
+                <div className="absolute -inset-4 bg-sky-500/20 rounded-full blur-xl z-0"></div>
+                <img 
+                  src={getPokemonImageUrl(activeMon.pokemon)} 
+                  alt={activeMon.pokemon} 
+                  loading="lazy"
+                  className="w-16 h-16 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           </div>
@@ -216,7 +244,7 @@ export default function Analytics() {
               <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 sm:p-5">
                 <h3 className="text-xs sm:text-sm font-bold text-white mb-2 border-b border-[#2e3040] pb-2">Top Items</h3>
                 <div className="flex flex-col">
-                  {activeMon.items.slice(0, 5).map((item, i) => <UsageBar key={i} rank={i + 1} label={item.name} usage={item.usage} />)}
+                  {activeMon.items.slice(0, 5).map((item, i) => <UsageBar key={i} rank={i + 1} label={item.name} usage={item.usage} isItem={true} />)}
                 </div>
               </div>
               <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 sm:p-5 flex-1">
@@ -272,7 +300,7 @@ export default function Analytics() {
             <MatchupList title="Often Loses To" data={activeMon.loses_to.slice(0, 6)} titleColor="text-rose-500" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-5">
             <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 sm:p-5">
               <h3 className="text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 border-b border-[#2e3040] pb-2">Winning Blows</h3>
               <div className="flex flex-col gap-0.5">
@@ -289,10 +317,11 @@ export default function Analytics() {
                   <UsageBar key={i} rank={i + 1} label={move.name} usage={move.usage} type={move.type} />
                 ))}
               </div>
+              </div>
             </div>
           </div>
-
-        </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -6,14 +6,15 @@ import { useAuth } from '../contexts/AuthContext';
 import type { TeamSlot, ChampionsPokemon, BaseStats, Nature } from '../types';
 import { NATURES, STAT_LABELS, STAT_METADATA, TYPE_COLORS, ALL_TYPES, PARSED_CHAMPIONS_LIST, PARSED_ITEMS_LIST } from '../utils/constants';
 import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl, getMoveCategoryUrl, calculateLvl50StatForSlot } from '../utils/helpers';
+import rawMetaStats from '../data/metaroll_stats.json';
 
 const CompactTypeBadge = ({ type }: { type: string }) => (
-  <img 
-    src={getTypeIconUrl(type)} 
-    alt={type} 
+  <img
+    src={getTypeIconUrl(type)}
+    alt={type}
     title={type}
-    className="w-3.5 h-3.5 xl:w-5 xl:h-5 drop-shadow-sm object-contain" 
-    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} 
+    className="w-3.5 h-3.5 xl:w-5 xl:h-5 drop-shadow-sm object-contain"
+    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
   />
 );
 
@@ -50,12 +51,32 @@ export default function TeamBuilder() {
   const navigate = useNavigate();
   const { user, setAuthModalOpen } = useAuth();
 
+  const allAbilitiesList = useMemo(() => {
+    return Array.from(new Set(PARSED_CHAMPIONS_LIST.flatMap(mon => mon.abilities.map(a => a.name)))).sort();
+  }, []);
+
+  const allMovesList = useMemo(() => {
+    const map = new Map();
+    PARSED_CHAMPIONS_LIST.forEach(mon => {
+      mon.moves.forEach(m => {
+        if (!map.has(m.name)) map.set(m.name, m);
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
   const [teamName, setTeamName] = useState('My Team');
   const [team, setTeam] = useState<TeamSlot[]>(INITIAL_TEAM);
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [statView, setStatView] = useState<'lvl50' | 'base'>('lvl50');
+  const [pokemonTypeFilters, setPokemonTypeFilters] = useState<string[]>([]);
+  const [typeLogic, setTypeLogic] = useState<'AND' | 'OR'>('AND');
+  const [pokemonMoveFilters, setPokemonMoveFilters] = useState<string[]>([]);
+  const [moveLogic, setMoveLogic] = useState<'AND' | 'OR'>('AND');
+  const [pokemonAbilityFilter, setPokemonAbilityFilter] = useState('');
   const [draggedSlotIndex, setDraggedSlotIndex] = useState<number | null>(null);
+  const [teamFormat, setTeamFormat] = useState<'doubles' | 'singles'>('doubles');
 
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +84,12 @@ export default function TeamBuilder() {
 
   const [activeMoveSlotIndex, setActiveMoveSlotIndex] = useState<number | null>(null);
   const [moveSearchQuery, setMoveSearchQuery] = useState('');
+  const [moveTypeFilter, setMoveTypeFilter] = useState<string>('All');
+  const [moveCategoryFilter, setMoveCategoryFilter] = useState<string>('All');
+  const [moveSort, setMoveSort] = useState<string>('Most Used');
+
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
 
   const [isNatureDropdownOpen, setIsNatureDropdownOpen] = useState(false);
   const natureDropdownRef = useRef<HTMLDivElement>(null);
@@ -72,10 +99,24 @@ export default function TeamBuilder() {
   const [importInput, setImportInput] = useState('');
   const [isImporting, setIsImporting] = useState(false);
 
+  const [moveSearchInput, setMoveSearchInput] = useState('');
+  const [isMoveDropdownOpen, setIsMoveDropdownOpen] = useState(false);
+  const moveDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [abilitySearchInput, setAbilitySearchInput] = useState('');
+  const [isAbilityDropdownOpen, setIsAbilityDropdownOpen] = useState(false);
+  const abilityDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (natureDropdownRef.current && !natureDropdownRef.current.contains(event.target as Node)) {
         setIsNatureDropdownOpen(false);
+      }
+      if (moveDropdownRef.current && !moveDropdownRef.current.contains(event.target as Node)) {
+        setIsMoveDropdownOpen(false);
+      }
+      if (abilityDropdownRef.current && !abilityDropdownRef.current.contains(event.target as Node)) {
+        setIsAbilityDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -110,8 +151,8 @@ export default function TeamBuilder() {
     fetchTeam();
   }, [teamId, navigate]);
 
-  const SP_TOTAL_LIMIT = 66; 
-  const SP_STAT_LIMIT = 32;  
+  const SP_TOTAL_LIMIT = 66;
+  const SP_STAT_LIMIT = 32;
   const METER_ABSOLUTE_MAX = 255;
 
   const activeSlot = team[activeIndex];
@@ -123,7 +164,7 @@ export default function TeamBuilder() {
     return ALL_TYPES.map(type => {
       const row = activeTeamMembers.map(slot => getMultiplierData(slot.pokemon!, type));
       const weakCount = row.filter(r => r.val > 1).length;
-      const resistCount = row.filter(r => r.val < 1).length; 
+      const resistCount = row.filter(r => r.val < 1).length;
       const net = resistCount - weakCount;
       return { type, row, weakCount, resistCount, net };
     });
@@ -134,31 +175,82 @@ export default function TeamBuilder() {
 
   const searchResults = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
+    const abilityQuery = pokemonAbilityFilter.toLowerCase().trim();
     const selectedNames = team.map(slot => slot.pokemon?.name).filter(Boolean);
     let results = PARSED_CHAMPIONS_LIST.filter(mon => !selectedNames.includes(mon.name));
+
+    if (pokemonTypeFilters.length > 0) {
+      if (typeLogic === 'AND') {
+        results = results.filter((mon) => pokemonTypeFilters.every(t => mon.types.includes(t)));
+      } else {
+        results = results.filter((mon) => pokemonTypeFilters.some(t => mon.types.includes(t)));
+      }
+    }
+
+    if (pokemonMoveFilters.length > 0) {
+      if (moveLogic === 'AND') {
+        results = results.filter((mon) => pokemonMoveFilters.every(mv => mon.moves.some(m => m.name === mv)));
+      } else {
+        results = results.filter((mon) => pokemonMoveFilters.some(mv => mon.moves.some(m => m.name === mv)));
+      }
+    }
+
+    if (abilityQuery) {
+      results = results.filter((mon) => mon.abilities.some(a => a.name.toLowerCase().includes(abilityQuery)));
+    }
 
     if (query) {
       results = results.filter((mon) => mon.name.toLowerCase().includes(query));
     }
     return results;
-  }, [searchTerm, team]);
+  }, [searchTerm, team, pokemonTypeFilters, pokemonAbilityFilter]);
 
 
   const filteredMoves = useMemo(() => {
     if (!activeSlot || !activeSlot.pokemon || !Array.isArray(activeSlot.pokemon.moves)) return [];
-    
-    const selectedMovesSet = new Set(activeSlot.selectedMoves.filter(Boolean));
-    const availableMoves = activeSlot.pokemon.moves.filter(m => !selectedMovesSet.has(m.name));
 
-    if (!moveSearchQuery.trim()) return availableMoves;
-    const q = moveSearchQuery.toLowerCase();
-    return availableMoves.filter(
-      (m) =>
-        (m.name && m.name.toLowerCase().includes(q)) ||
-        (m.type && m.type.toLowerCase().includes(q)) ||
-        (m.category && m.category.toLowerCase().includes(q))
-    );
-  }, [activeSlot, moveSearchQuery]);
+    const selectedMovesSet = new Set(activeSlot.selectedMoves.filter(Boolean));
+    let availableMoves = activeSlot.pokemon.moves.filter(m => !selectedMovesSet.has(m.name));
+
+    if (moveTypeFilter !== 'All') {
+      availableMoves = availableMoves.filter(m => m.type === moveTypeFilter);
+    }
+
+    if (moveCategoryFilter !== 'All') {
+      availableMoves = availableMoves.filter(m => m.category === moveCategoryFilter);
+    }
+
+    if (moveSearchQuery.trim()) {
+      const q = moveSearchQuery.toLowerCase();
+      availableMoves = availableMoves.filter(
+        (m) =>
+          (m.name && m.name.toLowerCase().includes(q)) ||
+          (m.type && m.type.toLowerCase().includes(q)) ||
+          (m.category && m.category.toLowerCase().includes(q))
+      );
+    }
+
+    const metaDoubles = (rawMetaStats as any).doubles || [];
+    const monMeta = metaDoubles.find((m: any) => m.pokemon === activeSlot.pokemon!.name);
+
+    const getUsage = (moveName: string) => {
+      if (!monMeta) return 0;
+      const move = monMeta.moves.find((m: any) => m.name === moveName);
+      return move ? parseFloat(move.usage.replace('%', '')) : 0;
+    };
+
+    availableMoves.sort((a, b) => {
+      if (moveSort === 'Most Used') {
+        return getUsage(b.name) - getUsage(a.name);
+      } else if (moveSort === 'Z-A') {
+        return b.name.localeCompare(a.name);
+      } else {
+        return a.name.localeCompare(b.name);
+      }
+    });
+
+    return availableMoves;
+  }, [activeSlot, moveSearchQuery, moveTypeFilter, moveCategoryFilter, moveSort]);
 
   const updateSpecificSlot = (idx: number, updates: Partial<TeamSlot>) => {
     setTeam((prev) => {
@@ -229,13 +321,13 @@ export default function TeamBuilder() {
     }
 
     const statKeys = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
-    let pasteText = '';
+    let pasteText = `Format: ${teamFormat === 'doubles' ? 'gen9vgc2024regf' : 'gen9singles'}\n\n`;
 
     team.forEach(slot => {
       if (!slot.pokemon) return;
       pasteText += `${slot.pokemon.name}${slot.item ? ` @ ${slot.item}` : ''}\n`;
       if (slot.selectedAbility) pasteText += `Ability: ${slot.selectedAbility}\n`;
-      pasteText += `Level: 50\n`; 
+      pasteText += `Level: 50\n`;
 
       const evs: string[] = [];
       (Object.keys(slot.sp) as (keyof BaseStats)[]).forEach(k => {
@@ -300,7 +392,7 @@ export default function TeamBuilder() {
               const parser = new DOMParser();
               const doc = parser.parseFromString(data.contents, 'text/html');
               extractedTitle = doc.querySelector('aside h1')?.textContent?.trim() || 'Imported Team';
-              
+
               const pres = Array.from(doc.querySelectorAll('article pre'));
               rawText = pres.map(pre => pre.textContent || '').join('\n\n');
             }
@@ -321,6 +413,13 @@ export default function TeamBuilder() {
       rawText = importInput;
     }
 
+    const formatMatch = rawText.match(/Format:\s*(.*)\n/i);
+    if (formatMatch) {
+      const fmt = formatMatch[1].toLowerCase();
+      if (fmt.includes('single')) setTeamFormat('singles');
+      else setTeamFormat('doubles');
+    }
+
     // Step 3: Robust Parsing Engine for Raw Showdown Text
     try {
       // Split by double newlines to isolate each Pokemon block
@@ -328,8 +427,8 @@ export default function TeamBuilder() {
       const newTeam = [...INITIAL_TEAM];
 
       blocks.forEach((block, idx) => {
-        if (idx >= 6) return; 
-        
+        if (idx >= 6) return;
+
         const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) return;
 
@@ -342,13 +441,13 @@ export default function TeamBuilder() {
           const match = pokemonName.match(/\((.*?)\)/);
           if (match) pokemonName = match[1].trim();
         }
-        
+
         // Strip genders
         pokemonName = pokemonName.replace(/\(M\)|\(F\)/g, '').trim();
 
         // Exact Match Search
         let mon = PARSED_CHAMPIONS_LIST.find(p => p.name.toLowerCase() === pokemonName.toLowerCase());
-        
+
         // Smart Fallback Match (Strips suffixes like -White, -Mega-Z to grab the base Pokémon)
         if (!mon && pokemonName.includes('-')) {
           const baseName = pokemonName.split('-')[0];
@@ -357,7 +456,7 @@ export default function TeamBuilder() {
 
         if (!mon) {
           console.warn(`Could not find a match for Pokemon: ${pokemonName}. Skipping slot.`);
-          return; 
+          return;
         }
 
         const slot: TeamSlot = {
@@ -435,6 +534,7 @@ export default function TeamBuilder() {
         short_id: shortId,
         team_name: teamName || 'My Team',
         roster: team,
+        format: teamFormat,
         user_id: user.id
       }
     ]);
@@ -466,30 +566,47 @@ export default function TeamBuilder() {
       <h1 className="sr-only">Competitive Pokémon Team Builder</h1>
       {/* Top Header - Updated Team Name Input Container */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#13141c] border border-[#2e3040] p-4 sm:p-6 rounded-2xl shadow-lg">
-        
-        <div className="w-full md:w-[45%] xl:w-1/3 flex items-center bg-[#1a1b26] border border-[#2e3040] rounded-xl px-4 py-2.5 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 transition-all shadow-inner">
-          <svg className="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-          <input
-            type="text"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            placeholder="Name your team..."
-            className="w-full bg-transparent text-xl font-black text-white tracking-tight outline-none placeholder:text-slate-600"
-          />
-          {teamName && (
-            <button 
-              onClick={() => setTeamName('')}
-              className="ml-2 text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0 focus:outline-none"
-              title="Clear team name"
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-[50%] xl:w-1/2">
+          <div className="flex-1 flex items-center bg-[#1a1b26] border border-[#2e3040] rounded-xl px-4 py-2.5 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 transition-all shadow-inner">
+            <svg className="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <input
+              type="text"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="Name your team..."
+              className="w-full bg-transparent text-xl font-black text-white tracking-tight outline-none placeholder:text-slate-600"
+            />
+            {teamName && (
+              <button
+                onClick={() => setTeamName('')}
+                className="ml-2 text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0 focus:outline-none"
+                title="Clear team name"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div className="flex bg-[#13141c] p-1 rounded-xl border border-[#2e3040] flex-shrink-0 items-center">
+            <button
+              onClick={() => setTeamFormat('doubles')}
+              className={`px-4 h-full text-xs font-bold rounded-lg transition-colors ${teamFormat === 'doubles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
+              Doubles
             </button>
-          )}
+            <button
+              onClick={() => setTeamFormat('singles')}
+              className={`px-4 h-full text-xs font-bold rounded-lg transition-colors ${teamFormat === 'singles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
+            >
+              Singles
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -531,7 +648,7 @@ export default function TeamBuilder() {
 
         {/* LEFT COLUMN: Roster Grid + Active Editor */}
         <div className="flex-1 w-full min-w-0 flex flex-col gap-6">
-          
+
           {/* Grid of 6 Draggable Roster Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 xl:gap-6">
             {team.map((slot, idx) => (
@@ -553,11 +670,10 @@ export default function TeamBuilder() {
                   setDraggedSlotIndex(null);
                 }}
                 onClick={() => setActiveIndex(idx)}
-                className={`relative px-2 sm:px-4 xl:px-5 pt-5 sm:pt-6 xl:pt-8 pb-3 sm:pb-4 xl:pb-5 min-h-[220px] sm:min-h-[250px] xl:min-h-[380px] rounded-2xl border-2 transition-all cursor-pointer shadow-lg overflow-hidden flex flex-col ${
-                  activeIndex === idx
+                className={`relative px-2 sm:px-4 xl:px-5 pt-5 sm:pt-6 xl:pt-8 pb-3 sm:pb-4 xl:pb-5 min-h-[220px] sm:min-h-[250px] xl:min-h-[380px] rounded-2xl border-2 transition-all cursor-pointer shadow-lg overflow-hidden flex flex-col ${activeIndex === idx
                     ? 'border-sky-500 bg-[#1a1b26] shadow-[0_0_20px_rgba(14,165,233,0.15)]'
                     : 'border-[#2e3040] bg-[#13141c] hover:border-slate-500'
-                } ${draggedSlotIndex === idx ? 'opacity-40 border-dashed' : 'opacity-100'}`}
+                  } ${draggedSlotIndex === idx ? 'opacity-40 border-dashed' : 'opacity-100'}`}
               >
                 {slot.pokemon && (
                   <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 pointer-events-none ${TYPE_COLORS[slot.pokemon.types[0]] || 'bg-slate-500'}`}></div>
@@ -571,20 +687,20 @@ export default function TeamBuilder() {
                 {/* Delete Slot X (Top Left) */}
                 {slot.pokemon && (
                   <button
-                    className="absolute top-2 xl:top-3 left-2 xl:left-3 text-rose-500 hover:text-rose-400 p-1 bg-rose-500/10 rounded-lg z-10 transition-colors"
+                    className="absolute top-2 xl:top-4 left-2 xl:left-4 text-slate-500 hover:text-rose-500 z-30 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       updateSpecificSlot(idx, { pokemon: null, sp: { ...DEFAULT_SP }, nature: DEFAULT_NATURE, selectedAbility: '', selectedMoves: [null, null, null, null], item: '' });
                     }}
                     title="Clear Slot"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   </button>
                 )}
 
                 {slot.pokemon ? (
                   <div className="flex flex-col h-full relative z-0">
-                    
+
                     {/* Header: Name & Type Icons */}
                     <div className="flex flex-col xl:flex-row items-center justify-center gap-1 xl:gap-2 mb-2 px-2 xl:px-6">
                       <span className="font-black text-white text-xs sm:text-sm lg:text-base xl:text-xl truncate max-w-full">{slot.pokemon.name}</span>
@@ -640,7 +756,7 @@ export default function TeamBuilder() {
                         const isRaises = slot.nature.raises === s.key;
                         const isLowers = slot.nature.lowers === s.key;
                         const meta = STAT_METADATA[s.key];
-                        
+
                         const baseW = Math.min((baseVal / METER_ABSOLUTE_MAX) * 100, 100);
                         const spW = Math.min((spVal / METER_ABSOLUTE_MAX) * 100, 100 - baseW);
 
@@ -650,14 +766,14 @@ export default function TeamBuilder() {
                               <div className="w-2 sm:w-3 flex justify-start">
                                 {isRaises ? <span className="text-rose-400">↑</span> : isLowers ? <span className="text-sky-400">↓</span> : ''}
                               </div>
-                              <span className="text-right flex-1">{s.label.replace('Sp. ', 'SP').substring(0,3).toUpperCase()}</span>
+                              <span className="text-right flex-1">{s.label.replace('Sp. ', 'SP').substring(0, 3).toUpperCase()}</span>
                             </div>
-                            
+
                             <div className="flex-1 h-1 sm:h-1.5 bg-[#20222e] rounded-full overflow-hidden flex shadow-inner min-w-[15px]">
                               <div className={`${meta.colorBase} h-full`} style={{ width: `${baseW}%` }}></div>
                               <div className={`${meta.colorAdded} h-full`} style={{ width: `${spW}%` }}></div>
                             </div>
-                            
+
                             <div className="flex items-center justify-end gap-0.5 sm:gap-1.5 w-[30px] sm:w-[40px] xl:w-[55px] flex-shrink-0">
                               <div className="flex-1 flex justify-end items-center">
                                 {spVal > 0 ? (
@@ -696,49 +812,202 @@ export default function TeamBuilder() {
             </div>
 
             {!activeSlot.pokemon ? (
-              <div className="pt-8 sm:pt-4 flex flex-col h-[700px]">
-                {/* Search Box and Level Toggle - Mobile Stacked */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </span>
+              <div className="pt-8 sm:pt-4 flex flex-col md:flex-row h-[700px] gap-6">
+
+                {/* Left Sidebar Filters */}
+                {/* Left Sidebar Filters */}
+                <div className="w-full md:w-[250px] bg-[#13141c] border border-[#2e3040] rounded-xl p-4 flex flex-col gap-4 flex-shrink-0 shadow-inner md:h-full">
+                  <div>
+                    <h4 className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Search</h4>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                      </span>
+                      <input
+                        type="text"
+                        className="w-full p-2 pl-9 bg-[#1a1b26] border border-[#2e3040] rounded-xl focus:border-sky-500 outline-none transition-all text-white font-medium shadow-inner placeholder:text-slate-500 text-xs"
+                        placeholder="Search Pokémon..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pokémon Type</h4>
+                      <div className="flex items-center gap-1.5 bg-[#1a1b26] p-0.5 rounded border border-[#2e3040]">
+                        <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${typeLogic === 'AND' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setTypeLogic('AND')}>And</span>
+                        <div 
+                          className="relative inline-flex items-center cursor-pointer w-5 h-2.5 rounded-full bg-[#2e3040]"
+                          onClick={() => setTypeLogic(typeLogic === 'AND' ? 'OR' : 'AND')}
+                        >
+                          <div className={`absolute w-1.5 h-1.5 bg-white rounded-full transition-transform ${typeLogic === 'OR' ? 'translate-x-2.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                        <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${typeLogic === 'OR' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setTypeLogic('OR')}>Or</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-1 justify-center">
+                      <button
+                        onClick={() => setPokemonTypeFilters([])}
+                        className={`w-full px-2 py-1 rounded text-[9px] font-bold border transition-colors text-center ${pokemonTypeFilters.length === 0 ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
+                      >
+                        All Types
+                      </button>
+                      {ALL_TYPES.map(type => {
+                        const isSelected = pokemonTypeFilters.includes(type);
+                        const isDisabled = !isSelected && pokemonTypeFilters.length >= 2;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => {
+                              if (isSelected) setPokemonTypeFilters(pokemonTypeFilters.filter(t => t !== type));
+                              else if (!isDisabled) setPokemonTypeFilters([...pokemonTypeFilters, type]);
+                            }}
+                            disabled={isDisabled}
+                            className={`flex items-center justify-center gap-1 px-1 py-1 rounded text-[8px] font-bold border transition-colors w-[68px] ${isSelected ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={type}
+                          >
+                            <img src={getTypeIconUrl(type)} alt={type} className="w-3 h-3 object-contain" />
+                            <span className="truncate">{type}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="relative" ref={moveDropdownRef}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Move</h4>
+                      <div className="flex items-center gap-1.5 bg-[#1a1b26] p-0.5 rounded border border-[#2e3040]">
+                        <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${moveLogic === 'AND' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setMoveLogic('AND')}>And</span>
+                        <div 
+                          className="relative inline-flex items-center cursor-pointer w-5 h-2.5 rounded-full bg-[#2e3040]"
+                          onClick={() => setMoveLogic(moveLogic === 'AND' ? 'OR' : 'AND')}
+                        >
+                          <div className={`absolute w-1.5 h-1.5 bg-white rounded-full transition-transform ${moveLogic === 'OR' ? 'translate-x-2.5' : 'translate-x-0.5'}`}></div>
+                        </div>
+                        <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${moveLogic === 'OR' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setMoveLogic('OR')}>Or</span>
+                      </div>
+                    </div>
+                    {pokemonMoveFilters.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {pokemonMoveFilters.map(mv => (
+                          <div key={mv} className="bg-sky-900/30 text-sky-300 text-[9px] px-2 py-0.5 rounded flex items-center gap-1 border border-sky-700/50">
+                            {mv}
+                            <button onClick={() => setPokemonMoveFilters(prev => prev.filter(m => m !== mv))} className="hover:text-white">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <input
                       type="text"
-                      className="w-full p-3.5 pl-12 bg-[#1a1b26] border border-[#2e3040] rounded-xl focus:border-sky-500 outline-none transition-all text-white font-medium shadow-inner placeholder:text-slate-500 text-base"
-                      placeholder="Search Champions Pokémon..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full p-2 bg-[#1a1b26] border border-[#2e3040] rounded-xl focus:border-sky-500 outline-none transition-all text-white font-medium shadow-inner placeholder:text-slate-500 text-xs"
+                      placeholder="Search moves..."
+                      value={moveSearchInput}
+                      onChange={(e) => {
+                        setMoveSearchInput(e.target.value);
+                        setIsMoveDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsMoveDropdownOpen(true)}
                     />
+                    {isMoveDropdownOpen && (
+                      <div className="absolute z-[60] left-0 right-0 top-full mt-1 bg-[#1a1b26] border border-[#2e3040] rounded-lg shadow-xl max-h-40 overflow-y-auto custom-scrollbar">
+                        {allMovesList.filter(m => m.name.toLowerCase().includes(moveSearchInput.toLowerCase()) && !pokemonMoveFilters.includes(m.name)).length > 0 ? (
+                          allMovesList.filter(m => m.name.toLowerCase().includes(moveSearchInput.toLowerCase()) && !pokemonMoveFilters.includes(m.name)).map(m => (
+                            <div
+                              key={m.name}
+                              className="px-3 py-1.5 hover:bg-[#20222e] cursor-pointer text-xs text-slate-300 flex items-center gap-2"
+                              onClick={() => {
+                                setPokemonMoveFilters(prev => [...prev, m.name]);
+                                setMoveSearchInput('');
+                                setIsMoveDropdownOpen(false);
+                              }}
+                            >
+                              <img src={getTypeIconUrl(m.type)} alt={m.type} className="w-3.5 h-3.5 object-contain" />
+                              {m.name}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-slate-500">No moves found</div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex bg-[#1a1b26] rounded-xl border border-[#2e3040] p-1 shadow-inner h-[54px] flex-shrink-0">
-                    <button
-                      onClick={() => setStatView('lvl50')}
-                      className={`flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-sm transition-colors ${statView === 'lvl50' ? 'bg-[#323445] text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                      Lvl 50
-                    </button>
-                    <button
-                      onClick={() => setStatView('base')}
-                      className={`flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-sm transition-colors ${statView === 'base' ? 'bg-[#323445] text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                      Base
-                    </button>
+
+                  <div className="relative" ref={abilityDropdownRef}>
+                    <h4 className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Ability</h4>
+                    {pokemonAbilityFilter && (
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        <div className="bg-emerald-900/30 text-emerald-300 text-[9px] px-2 py-0.5 rounded flex items-center gap-1 border border-emerald-700/50">
+                          {pokemonAbilityFilter}
+                          <button onClick={() => setPokemonAbilityFilter('')} className="hover:text-white">✕</button>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      className="w-full p-2 bg-[#1a1b26] border border-[#2e3040] rounded-xl focus:border-sky-500 outline-none transition-all text-white font-medium shadow-inner placeholder:text-slate-500 text-xs"
+                      placeholder="Search ability..."
+                      value={abilitySearchInput}
+                      onChange={(e) => {
+                        setAbilitySearchInput(e.target.value);
+                        setIsAbilityDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsAbilityDropdownOpen(true)}
+                    />
+                    {isAbilityDropdownOpen && (
+                      <div className="absolute z-[60] left-0 right-0 top-full mt-1 bg-[#1a1b26] border border-[#2e3040] rounded-lg shadow-xl max-h-40 overflow-y-auto custom-scrollbar">
+                        {allAbilitiesList.filter(a => a.toLowerCase().includes(abilitySearchInput.toLowerCase()) && a !== pokemonAbilityFilter).length > 0 ? (
+                          allAbilitiesList.filter(a => a.toLowerCase().includes(abilitySearchInput.toLowerCase()) && a !== pokemonAbilityFilter).map(a => (
+                            <div
+                              key={a}
+                              className="px-3 py-1.5 hover:bg-[#20222e] cursor-pointer text-xs text-slate-300"
+                              onClick={() => {
+                                setPokemonAbilityFilter(a);
+                                setAbilitySearchInput('');
+                                setIsAbilityDropdownOpen(false);
+                              }}
+                            >
+                              {a}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-slate-500">No abilities found</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {/* Table Structure List - Mobile Horizontal Scroll wrapper */}
+
+                {/* Table Structure List */}
                 <div className="flex flex-col flex-1 bg-[#1a1b26] border border-[#2e3040] rounded-xl overflow-hidden shadow-inner overflow-x-auto">
-                  <div className="min-w-[650px] flex flex-col h-full">
+                  <div className="min-w-[650px] flex flex-col h-full pt-2">
+                    <div className="flex justify-end px-4 mb-2">
+                      <div className="flex bg-[#13141c] rounded-lg border border-[#2e3040] p-1 shadow-md">
+                        <button
+                          onClick={() => setStatView('lvl50')}
+                          className={`px-3 py-1.5 rounded-md font-black text-[10px] transition-colors ${statView === 'lvl50' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                          Lvl 50
+                        </button>
+                        <button
+                          onClick={() => setStatView('base')}
+                          className={`px-3 py-1.5 rounded-md font-black text-[10px] transition-colors ${statView === 'base' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                          Base
+                        </button>
+                      </div>
+                    </div>
                     {/* Header */}
-                    <div className="grid grid-cols-[minmax(180px,_1fr)_repeat(6,_minmax(40px,_60px))] gap-2 sm:gap-6 items-center px-6 py-4 border-b border-[#2e3040] bg-[#13141c]">
-                      <div className="font-black text-white uppercase tracking-wider text-sm">Pokemon</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">HP</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">ATK</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">DEF</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">SPA</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">SPD</div>
-                      <div className="text-center font-black text-white text-xs tracking-wider">SPE</div>
+                    <div className="grid grid-cols-[minmax(180px,_1fr)_repeat(6,_minmax(40px,_60px))] gap-2 sm:gap-6 items-center px-6 py-3 border-b border-t border-[#2e3040] bg-[#13141c]">
+                      <div className="font-black text-slate-400 uppercase tracking-wider text-[10px]">Pokemon</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">HP</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">ATK</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">DEF</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">SPA</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">SPD</div>
+                      <div className="text-center font-black text-slate-400 text-[10px] tracking-wider">SPE</div>
                     </div>
 
                     {/* Scrolling Content */}
@@ -785,7 +1054,7 @@ export default function TeamBuilder() {
               </div>
             ) : (
               <div className="pt-6 sm:pt-2">
-                
+
                 {/* Header: Change Pokémon Button - Mobile Stacked */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-[#2e3040] pb-6">
                   <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -803,13 +1072,13 @@ export default function TeamBuilder() {
 
                 {/* Left: Nature/Item, Right: Ability List */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8 border-b border-[#2e3040] pb-8">
-                  
+
                   <div className="flex flex-col gap-6">
-                    
+
                     {/* Custom Nature Selector */}
                     <div className="relative" ref={natureDropdownRef}>
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nature</h3>
-                      <div 
+                      <div
                         onClick={() => setIsNatureDropdownOpen(!isNatureDropdownOpen)}
                         className="w-full bg-[#13141c] border border-[#2e3040] rounded-lg p-3 text-white hover:border-sky-500 font-bold cursor-pointer shadow-inner flex justify-between items-center mb-3"
                       >
@@ -819,7 +1088,7 @@ export default function TeamBuilder() {
                       {isNatureDropdownOpen && (
                         <div className="absolute top-[70px] left-0 w-full mt-2 bg-[#1a1b26] border border-[#2e3040] rounded-xl shadow-2xl z-30 max-h-72 overflow-y-auto custom-scrollbar">
                           {NATURES.map((n) => (
-                            <div 
+                            <div
                               key={n.name}
                               onClick={() => {
                                 updateActiveSlot({ nature: n });
@@ -840,7 +1109,7 @@ export default function TeamBuilder() {
                           ))}
                         </div>
                       )}
-                      
+
                       <div className="flex gap-3 items-center mt-1">
                         <div className="flex items-center justify-between flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-3 shadow-inner">
                           <span className="text-white font-bold text-sm">
@@ -848,7 +1117,7 @@ export default function TeamBuilder() {
                           </span>
                           <span className="text-rose-500 font-bold text-xs">+10%</span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between flex-1 bg-[#13141c] border border-[#2e3040] rounded-lg p-3 shadow-inner">
                           <span className="text-white font-bold text-sm">
                             {activeSlot.nature.lowers ? STAT_METADATA[activeSlot.nature.lowers].label : '—'}
@@ -861,13 +1130,13 @@ export default function TeamBuilder() {
                     {/* Held Item Selector */}
                     <div>
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Held Item</h3>
-                      <div 
-                          onClick={() => {
-                            const item = prompt("Enter Held Item (e.g., Leftovers, Choice Band):", activeSlot.item);
-                            if (item !== null) updateActiveSlot({ item: item.trim() });
-                          }}
-                          className="flex flex-col gap-2 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-lg p-3 cursor-pointer transition-all shadow-inner group"
-                        >
+                      <div
+                        onClick={() => {
+                          setIsItemModalOpen(true);
+                          setItemSearchQuery('');
+                        }}
+                        className="flex flex-col gap-2 bg-[#13141c] border border-[#2e3040] hover:border-yellow-500 rounded-lg p-3 cursor-pointer transition-all shadow-inner group"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded bg-[#20222e] flex items-center justify-center flex-shrink-0 group-hover:bg-[#2a2d3d] transition-colors border border-[#323445]">
                             {activeSlot.item ? (
@@ -897,7 +1166,7 @@ export default function TeamBuilder() {
                       {activeSlot.pokemon.abilities.map((ab) => {
                         const isSelected = activeSlot.selectedAbility === ab.name;
                         return (
-                          <div 
+                          <div
                             key={ab.name}
                             onClick={() => updateActiveSlot({ selectedAbility: ab.name })}
                             className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-[#13141c] border-emerald-500' : 'bg-[#1a1b26] border-[#2e3040] hover:border-slate-500'}`}
@@ -927,10 +1196,8 @@ export default function TeamBuilder() {
                     const currentSp = activeSlot.sp[key];
 
                     const rawStat = baseValue + currentSp;
-                    const statAtZeroSp = calculateLvl50StatForSlot(activeSlot, key); 
-                    
-                    totalRawStats += rawStat;
-                    
+                    const statAtZeroSp = calculateLvl50StatForSlot(activeSlot, key);
+
                     totalRawStats += rawStat;
                     totalCalcStats += statAtZeroSp;
 
@@ -1015,12 +1282,12 @@ export default function TeamBuilder() {
                     <div className="relative w-16 h-16 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90">
                         <circle cx="32" cy="32" r="28" stroke="#2e3040" strokeWidth="6" fill="none" />
-                        <circle 
-                          cx="32" cy="32" r="28" 
-                          stroke="#0ea5e9" strokeWidth="6" fill="none" 
-                          strokeDasharray={175.93} 
-                          strokeDashoffset={175.93 - (spLeft / 66) * 175.93} 
-                          className="transition-all duration-500 ease-out" 
+                        <circle
+                          cx="32" cy="32" r="28"
+                          stroke="#0ea5e9" strokeWidth="6" fill="none"
+                          strokeDasharray={175.93}
+                          strokeDashoffset={175.93 - (spLeft / 66) * 175.93}
+                          className="transition-all duration-500 ease-out"
                           strokeLinecap="round"
                         />
                       </svg>
@@ -1059,7 +1326,7 @@ export default function TeamBuilder() {
                                 <img src={getMoveCategoryUrl(moveDetails.category)} alt={moveDetails.category} title={moveDetails.category} className="h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               </div>
                               <span className="font-black text-xl text-white group-hover:text-sky-400 transition-colors">{moveDetails.name}</span>
-                              
+
                               <div className="text-xs font-bold text-slate-500 font-mono flex gap-4 mt-2">
                                 <span>PWR: {moveDetails.power}</span>
                                 <span>ACC: {moveDetails.accuracy}</span>
@@ -1099,11 +1366,11 @@ export default function TeamBuilder() {
         {/* RIGHT COLUMN: Defensive Coverage Sidebar */}
         <div className="w-full lg:w-[280px] xl:w-[350px] flex-shrink-0 sticky top-6 mt-6 lg:mt-0">
           <div className="bg-[#13141c] border border-[#2e3040] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            
+
             {/* Header */}
             <div className="p-4 xl:p-5 border-b border-[#2e3040] bg-[#1a1b26]">
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Team Defense</h3>
-              
+
               <div className="mb-4 xl:mb-5">
                 <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                   Shared Weaknesses
@@ -1138,21 +1405,21 @@ export default function TeamBuilder() {
                 <div className="min-w-max">
                   {/* Header Row */}
                   <div className="flex items-end justify-between mb-3 border-b border-[#2e3040] pb-2 px-1">
-                    <div className="flex items-center">
+                    <div className="flex items-center flex-1">
                       <div className="w-6 xl:w-8 flex-shrink-0"></div>
                       {activeTeamMembers.map((slot, i) => (
-                        <div key={i} className="w-7 xl:w-9 flex justify-center flex-shrink-0 relative group">
-                          <img 
-                            src={getPokemonImageUrl(slot.pokemon!.name)} 
-                            alt={slot.pokemon!.name} 
-                            className="w-6 h-6 xl:w-7 xl:h-7 object-contain drop-shadow-md z-10 hover:scale-125 transition-transform origin-bottom" 
-                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} 
+                        <div key={i} className="flex-1 min-w-[30px] flex justify-center relative group">
+                          <img
+                            src={getPokemonImageUrl(slot.pokemon!.name)}
+                            alt={slot.pokemon!.name}
+                            className="w-6 h-6 xl:w-7 xl:h-7 object-contain drop-shadow-md z-10 hover:scale-125 transition-transform origin-bottom"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                           />
                           <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-sky-500/20 to-transparent blur-sm rounded-full z-0"></div>
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center gap-1 ml-2 xl:ml-4">
+                    <div className="flex items-center gap-1 ml-2 xl:ml-4 border-l border-[#2e3040] pl-3 xl:pl-5">
                       <div className="w-6 xl:w-8 flex justify-center text-rose-500 font-black text-sm flex-shrink-0">↓</div>
                       <div className="w-6 xl:w-8 flex justify-center text-emerald-400 font-black text-sm flex-shrink-0">↑</div>
                       <div className="w-6 xl:w-8 flex justify-center text-sky-400 font-black text-sm flex-shrink-0">=</div>
@@ -1162,26 +1429,26 @@ export default function TeamBuilder() {
                   {/* Body Rows */}
                   {matrixData.map((d) => (
                     <div key={d.type} className="flex items-center justify-between py-1.5 border-b border-[#2e3040]/40 hover:bg-[#1a1b26] rounded-md px-1 -mx-1 transition-colors">
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1">
                         <div className="w-6 xl:w-8 flex justify-center flex-shrink-0">
                           <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                         </div>
-                        
+
                         {d.row.map((r, i) => {
                           let colorClass = "text-slate-600 font-normal";
                           let bgClass = "bg-transparent";
                           if (r.val > 1) { colorClass = "text-rose-400 font-black"; bgClass = "bg-rose-500/10"; }
                           if (r.val < 1) { colorClass = "text-emerald-400 font-black"; bgClass = "bg-emerald-500/10"; }
-                          
+
                           return (
-                            <div key={i} className="w-7 xl:w-9 flex justify-center flex-shrink-0 p-0.5">
-                              <span className={`text-[10px] w-full text-center rounded py-1 ${colorClass} ${bgClass}`}>{r.text}</span>
+                            <div key={i} className="flex-1 min-w-[30px] flex justify-center p-0.5">
+                              <span className={`text-[10px] sm:text-xs w-full text-center rounded py-1 ${colorClass} ${bgClass}`}>{r.text}</span>
                             </div>
                           );
                         })}
                       </div>
-                      
-                      <div className="flex items-center gap-1 ml-2 xl:ml-4">
+
+                      <div className="flex items-center gap-1 ml-2 xl:ml-4 border-l border-[#2e3040] pl-3 xl:pl-5">
                         <div className={`w-6 xl:w-8 flex justify-center text-[11px] font-black flex-shrink-0 rounded p-1 ${d.weakCount > 0 ? 'text-rose-400 bg-rose-500/10' : 'text-slate-600'}`}>{d.weakCount}</div>
                         <div className={`w-6 xl:w-8 flex justify-center text-[11px] font-black flex-shrink-0 rounded p-1 ${d.resistCount > 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600'}`}>{d.resistCount}</div>
                         <div className={`w-6 xl:w-8 flex justify-center text-[11px] font-black flex-shrink-0 rounded p-1 ${d.net > 0 ? 'text-emerald-400 bg-emerald-500/10' : d.net < 0 ? 'text-rose-400 bg-rose-500/10' : 'text-slate-600'}`}>
@@ -1209,7 +1476,7 @@ export default function TeamBuilder() {
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#13141c] border border-[#2e3040] rounded-2xl max-w-md w-full p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
-            <button 
+            <button
               onClick={() => {
                 setIsImportModalOpen(false);
                 setImportInput('');
@@ -1220,7 +1487,7 @@ export default function TeamBuilder() {
             </button>
             <h3 className="text-2xl font-black text-white mb-2 text-center">Import Team</h3>
             <p className="text-slate-400 text-sm text-center mb-6">Paste a Poképaste URL, or paste your raw Showdown text directly below.</p>
-            
+
             <textarea
               placeholder="https://pokepast.es/... OR paste raw Showdown text here"
               value={importInput}
@@ -1228,7 +1495,7 @@ export default function TeamBuilder() {
               rows={6}
               className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 text-white text-sm outline-none focus:border-sky-500 transition-colors shadow-inner mb-4 resize-none custom-scrollbar"
             />
-            
+
             <button
               onClick={handleImport}
               disabled={isImporting || !importInput.trim()}
@@ -1242,8 +1509,8 @@ export default function TeamBuilder() {
 
       {/* Move Selection Modal Overlay */}
       {activeMoveSlotIndex !== null && activeSlot.pokemon && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-[70rem] w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-center shadow-md z-10">
               <div>
                 <h3 className="text-xl font-black text-white">Select Move</h3>
@@ -1260,44 +1527,168 @@ export default function TeamBuilder() {
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 border-b border-[#2e3040] bg-[#13141c]">
-              <input
-                type="text"
-                placeholder="Filter learnset by move name, type, or category..."
-                value={moveSearchQuery}
-                onChange={(e) => setMoveSearchQuery(e.target.value)}
-                className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 text-white font-bold outline-none focus:border-sky-500 shadow-inner"
-              />
+            <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+              {/* Left Sidebar Filters */}
+              <div className="w-full md:w-[250px] bg-[#13141c] border-b md:border-b-0 md:border-r border-[#2e3040] p-4 flex flex-col gap-5 overflow-y-auto custom-scrollbar flex-shrink-0">
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</h4>
+                  <input
+                    type="text"
+                    placeholder="Search moves..."
+                    value={moveSearchQuery}
+                    onChange={(e) => setMoveSearchQuery(e.target.value)}
+                    className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-2.5 text-white text-xs outline-none focus:border-sky-500 shadow-inner"
+                  />
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Sort</h4>
+                  <select
+                    value={moveSort}
+                    onChange={(e) => setMoveSort(e.target.value)}
+                    className="w-full bg-[#1a1b26] border border-[#2e3040] text-xs text-slate-300 rounded-lg p-2.5 outline-none focus:border-sky-500"
+                  >
+                    <option value="Most Used">Most Used</option>
+                    <option value="A-Z">A-Z</option>
+                    <option value="Z-A">Z-A</option>
+                  </select>
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Damage Class</h4>
+                  <div className="flex flex-col gap-1.5">
+                    {['All', 'Physical', 'Special', 'Status'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setMoveCategoryFilter(cat)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${moveCategoryFilter === cat ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
+                      >
+                        {cat !== 'All' && <img src={getMoveCategoryUrl(cat)} alt={cat} className="w-4 h-4 object-contain" />}
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Type</h4>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => setMoveTypeFilter('All')}
+                      className={`col-span-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors text-center ${moveTypeFilter === 'All' ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
+                    >
+                      All Types
+                    </button>
+                    {ALL_TYPES.map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setMoveTypeFilter(type)}
+                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-bold border transition-colors ${moveTypeFilter === type ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
+                      >
+                        <img src={getTypeIconUrl(type)} alt={type} className="w-3.5 h-3.5 object-contain" />
+                        <span className="truncate">{type}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content Area */}
+              <div className="flex-1 overflow-y-auto bg-[#13141c] custom-scrollbar">
+                <div className="min-w-[500px]">
+                  <div className="grid grid-cols-[160px_60px_1fr_45px_45px_45px] gap-3 px-6 py-3 border-b border-[#2e3040] text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#13141c] z-10 shadow-sm">
+                    <div>Move</div>
+                    <div>Usage</div>
+                    <div>Description</div>
+                    <div className="text-center">Power</div>
+                    <div className="text-center">Acc</div>
+                    <div className="text-center">PP</div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 p-4 pt-3">
+                    {filteredMoves.map((m) => {
+                      const usagePct = (rawMetaStats as any).doubles?.find((md: any) => md.pokemon === activeSlot.pokemon!.name)?.moves.find((md: any) => md.name === m.name)?.usage || '0.0%';
+
+                      return (
+                        <div
+                          key={m.name}
+                          onClick={() => handleSelectMove(m.name)}
+                          className="grid grid-cols-[160px_60px_1fr_45px_45px_45px] gap-3 px-4 py-3 bg-[#1a1b26] border border-[#2e3040] hover:border-sky-500 hover:bg-[#20222e] rounded-xl cursor-pointer transition-all items-center group shadow-sm min-h-[80px]"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-4 h-4 flex-shrink-0 object-contain" />
+                            <img src={getMoveCategoryUrl(m.category)} alt={m.category} title={m.category} className="w-4 h-4 flex-shrink-0 object-contain" />
+                            <span className="font-black text-xs sm:text-sm text-white group-hover:text-sky-400 transition-colors truncate">{m.name}</span>
+                          </div>
+
+                          <div className="text-xs font-bold text-slate-300 font-mono">{usagePct}</div>
+                          <div className="text-[10px] sm:text-xs text-slate-400 line-clamp-2 pr-2" title={m.description}>{m.description}</div>
+                          <div className="text-center text-xs sm:text-sm font-black text-white font-mono">{m.power}</div>
+                          <div className="text-center text-xs sm:text-sm font-black text-white font-mono">{m.accuracy}</div>
+                          <div className="text-center text-xs sm:text-sm font-black text-white font-mono">{m.pp}</div>
+                        </div>
+                      );
+                    })}
+                    {filteredMoves.length === 0 && (
+                      <div className="text-center text-slate-500 py-10 font-bold text-sm">No matching moves found.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Item Modal */}
+      {isItemModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+          <div className="bg-[#13141c] border border-[#2e3040] rounded-2xl max-w-2xl w-full flex flex-col max-h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+            <button
+              onClick={() => setIsItemModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#1a1b26] text-slate-400 hover:text-white hover:bg-rose-500 transition-colors flex items-center justify-center border border-[#2e3040] z-20"
+            >
+              ✕
+            </button>
+            <div className="p-6 border-b border-[#2e3040] relative z-10 bg-[#13141c]">
+              <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#20222e] flex items-center justify-center border border-[#2e3040]">
+                  <span className="text-slate-500 font-bold text-lg">+</span>
+                </div>
+                Select Held Item
+              </h3>
+              <div className="mt-6">
+                <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</h4>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={itemSearchQuery}
+                    onChange={(e) => setItemSearchQuery(e.target.value)}
+                    className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-2.5 text-white text-xs outline-none focus:border-sky-500 shadow-inner"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4 custom-scrollbar">
-              {filteredMoves.map((m) => (
-                <div
-                  key={m.name}
-                  onClick={() => handleSelectMove(m.name)}
-                  className="p-4 sm:p-5 bg-[#13141c] border border-[#2e3040] hover:border-sky-500 rounded-xl cursor-pointer transition-all hover:bg-[#1e1f2b] shadow-sm group flex flex-col gap-3"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                      <img src={getMoveCategoryUrl(m.category)} alt={m.category} title={m.category} className="h-4 sm:h-5 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                      <span className="font-black text-lg sm:text-xl text-white ml-2 group-hover:text-sky-400 transition-colors">{m.name}</span>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-slate-500 font-mono flex gap-4 sm:gap-6 bg-[#1a1b26] p-2.5 sm:p-3 rounded-lg border border-[#2e3040] shadow-sm w-full sm:w-auto justify-between sm:justify-start">
-                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">PWR</span><span className="text-slate-200 text-sm sm:text-base font-black">{m.power}</span></span>
-                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">ACC</span><span className="text-slate-200 text-sm sm:text-base font-black">{m.accuracy}</span></span>
-                      <span className="flex flex-col items-center"><span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">PP</span><span className="text-slate-200 text-sm sm:text-base font-black">{m.pp}</span></span>
+            <div className="flex-1 overflow-y-auto bg-[#13141c] custom-scrollbar">
+              <div className="flex flex-col gap-2 p-4 pt-3">
+                {PARSED_ITEMS_LIST.filter(i => i.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || i.description.toLowerCase().includes(itemSearchQuery.toLowerCase())).map((i) => (
+                  <div
+                    key={i.name}
+                    onClick={() => {
+                      updateActiveSlot({ item: i.name });
+                      setIsItemModalOpen(false);
+                    }}
+                    className="flex items-center gap-4 px-4 py-3 bg-[#1a1b26] border border-[#2e3040] hover:border-sky-500 hover:bg-[#20222e] rounded-xl cursor-pointer transition-all shadow-sm group"
+                  >
+                    <img src={getItemImageUrl(i.name)} alt={i.name} title={i.name} className="w-8 h-8 flex-shrink-0 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <div className="flex flex-col">
+                      <span className="font-black text-sm text-white group-hover:text-sky-400 transition-colors">{i.name}</span>
+                      <span className="text-xs text-slate-400 line-clamp-2">{i.description}</span>
                     </div>
                   </div>
-                  {m.description && (
-                    <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium pl-3 border-l-2 border-slate-700 ml-1">{m.description}</p>
-                  )}
-                </div>
-              ))}
-              {filteredMoves.length === 0 && (
-                <div className="text-center text-slate-500 py-10 font-bold">No matching moves found in learnset.</div>
-              )}
+                ))}
+              </div>
             </div>
           </div>
         </div>
