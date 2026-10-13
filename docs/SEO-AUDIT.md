@@ -42,7 +42,7 @@ The property owner should open [Google Search Console](https://search.google.com
 
 ## Deployment follow-up
 
-These changes are committed locally; no deployment or push is included. After deployment, check canonical slugs, alias redirects, unknown URL status codes, shared-team loading, sitemap, robots, favicon URLs, and the Google verification file on the production host. Inspect the three public routes in Search Console and measure production Web Vitals.
+The initial milestones were committed locally. The subsequent search-result favicon fix was published to production through the existing Vercel Git integration. After deployment, check canonical slugs, alias redirects, unknown URL status codes, shared-team loading, sitemap, robots, favicon URLs, and the Google verification file on the production host. Inspect the three public routes in Search Console and measure production Web Vitals.
 
 Shared teams are loaded from Supabase in the browser. Their full content is not prerendered, and nonexistent team IDs use an unavailable-team message inside the static shell. Generating individual team HTML and server-side team existence status codes would require backend rendering or a scheduled public-team export. Only stable public landing pages are included in the sitemap.
 
@@ -61,3 +61,9 @@ Read-only production checks confirmed that the redesigned ICO and PokéChamp Web
 Added a dedicated unpadded 96×96 `favicon.png`, declared directly in the homepage, and explicit cache revalidation for favicon and manifest URLs. The WebSite alternative is now only `PokeChamp`; the hosting hostname is no longer suggested.
 
 Google's search name and favicon are independently stored and refreshed by Google. Replacing site files cannot immediately rewrite an existing search result. The property owner must use Search Console URL Inspection for the homepage, test the live URL, and request indexing. Site names are not supported by Google's Rich Results Test.
+
+### Production release confirmation
+
+Commit `f824e7a` was pushed to the existing main branch, and Vercel reported a successful production deployment. Production `/favicon.png` returned 200 with `Content-Type: image/png`, 96×96 dimensions, and `Cache-Control: public, max-age=0, must-revalidate`. The live homepage declares that icon and the PokéChamp site name with only PokeChamp as its alternative. A Googlebot user-agent request received the same public HTML, with indexing allowed.
+
+Search Console is still unconnected. Google’s indexed site name and favicon cannot be manually overwritten by repository changes. The outstanding external step is homepage URL Inspection and Request Indexing in the property owner’s Search Console account.
