@@ -20,7 +20,7 @@ export function getSchema(pathname) {
     '@context': 'https://schema.org',
     '@graph': [
       { '@type': 'Organization', '@id': `${SITE_URL}/#brand`, name: SITE_NAME, url: `${SITE_URL}/`, logo: { '@type': 'ImageObject', '@id': `${SITE_URL}/#logo`, url: `${SITE_URL}/logo.svg`, contentUrl: `${SITE_URL}/logo.svg`, width: 420, height: 96, caption: SITE_NAME } },
-      { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: SITE_NAME, alternateName: ['PokeChamp', 'Poké Champ', 'pokechamp-tau.vercel.app'], url: `${SITE_URL}/`, publisher: { '@id': `${SITE_URL}/#brand` } },
+      { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: SITE_NAME, alternateName: ['PokeChamp'], url: `${SITE_URL}/`, publisher: { '@id': `${SITE_URL}/#brand` } },
       { '@type': 'WebApplication', '@id': `${SITE_URL}/#app`, name: SITE_NAME, url: `${SITE_URL}/`, applicationCategory: 'GameApplication', operatingSystem: 'Web', description: pages[0].description, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } },
       { '@type': page.path === '/team-showcase' ? 'CollectionPage' : 'WebPage', '@id': `${url}#webpage`, name: page.name, description: page.description, url, isPartOf: { '@id': `${SITE_URL}/#website` }, about: { '@id': `${SITE_URL}/#app` } },
       ...(page.path === '/' ? [] : [{ '@type': 'BreadcrumbList', itemListElement: [ { '@type': 'ListItem', position: 1, name: 'Team Builder', item: `${SITE_URL}/` }, { '@type': 'ListItem', position: 2, name: page.name, item: url } ] }]),

@@ -41,6 +41,9 @@ assert.deepEqual([...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map(match => match[
 assert.match(await readFile('dist/robots.txt', 'utf8'), new RegExp(`Sitemap: ${SITE_URL}/sitemap.xml`));
 assert.ok((await readFile('dist/llms.txt', 'utf8')).includes('# PokéChamp'));
 assert.equal(await readFile('dist/google711de76d62b8d616.html', 'utf8'), await readFile('public/google711de76d62b8d616.html', 'utf8'));
+const favicon = await sharp('dist/favicon.png').metadata();
+assert.deepEqual([favicon.width, favicon.height, favicon.format], [96, 96, 'png']);
+assert.ok((await readFile('dist/index.html', 'utf8')).includes('rel="icon" href="/favicon.png" type="image/png" sizes="96x96"'));
 const ico = await readFile('dist/favicon.ico');
 assert.equal(ico.readUInt16LE(0), 0);
 assert.equal(ico.readUInt16LE(2), 1);

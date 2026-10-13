@@ -2,6 +2,8 @@ import sharp from 'sharp';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const svg = await readFile(new URL('../public/favicon.svg', import.meta.url));
+// An unpadded square PNG gives search crawlers a clear, high-resolution mark.
+await sharp(svg).resize(96, 96).png({ compressionLevel: 9 }).toFile('public/favicon.png');
 const sizes = [16, 32, 48];
 const images = await Promise.all(sizes.map(size => sharp(svg).resize(size, size).png().toBuffer()));
 // A genuine ICO directory with a PNG payload for each supported size.

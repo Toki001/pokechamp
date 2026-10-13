@@ -50,6 +50,14 @@ Shared teams are loaded from Supabase in the browser. Their full content is not 
 
 A new, original PokéChamp wordmark is available at `/logo.svg`, with a matching crowned-ball mark for favicons and social artwork. The unrelated untracked root `logo.svg` is untouched and is not referenced by the app or artwork scripts. Header and footer branding now use the new asset, and the homepage H1 names PokéChamp explicitly.
 
-The `WebSite` schema includes `name: PokéChamp`, the ASCII alternative `PokeChamp`, and the exact site hostname as a fallback. Its publisher references the PokéChamp brand and logo schema. These declarations strengthen the requested site name; they cannot force an immediate change in Google's search results. [Google chooses site names from structured data and other signals](https://developers.google.com/search/docs/appearance/site-names).
+The `WebSite` schema includes `name: PokéChamp`, the ASCII alternative `PokeChamp`, as the only alternative, so neither the hosting provider nor hostname is suggested as a preferred site name. Its publisher references the PokéChamp brand and logo schema. These declarations strengthen the requested site name; they cannot force an immediate change in Google's search results. [Google chooses site names from structured data and other signals](https://developers.google.com/search/docs/appearance/site-names).
 
 Deploy the updated build and request indexing of the homepage through Search Console. Google must recrawl and process the new homepage and favicon before its search-result label or icon can change.
+
+## Live search-result investigation
+
+Read-only production checks confirmed that the redesigned ICO and PokéChamp WebSite schema were already live at commit `ba90ac3`. The SVG differed from source because Vite optimized its markup; its artwork was the redesigned crowned ball. The search screenshot still showed the older horizontal wordmark, indicating stale search-result data rather than that being the live favicon.
+
+Added a dedicated unpadded 96×96 `favicon.png`, declared directly in the homepage, and explicit cache revalidation for favicon and manifest URLs. The WebSite alternative is now only `PokeChamp`; the hosting hostname is no longer suggested.
+
+Google's search name and favicon are independently stored and refreshed by Google. Replacing site files cannot immediately rewrite an existing search result. The property owner must use Search Console URL Inspection for the homepage, test the live URL, and request indexing. Site names are not supported by Google's Rich Results Test.
