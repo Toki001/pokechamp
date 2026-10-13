@@ -69,7 +69,7 @@ export default function TeamShowcase() {
     if (selectedTeam?.short_id === id) {
       setSelectedTeam({ ...selectedTeam, upvotes: newUp });
     }
-    
+
     setVotedTeams(prev => {
       const next = { ...prev };
       if (isHearted) delete next[id];
@@ -91,15 +91,15 @@ export default function TeamShowcase() {
   // Dynamically filter and sort the teams based on user selection
   const displayedTeams = useMemo(() => {
     let filtered = [...teams];
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(team => 
+      filtered = filtered.filter(team =>
         (team.team_name && team.team_name.toLowerCase().includes(query)) ||
         team.roster.some(slot => slot.pokemon?.name.toLowerCase().includes(query))
       );
     }
-    
+
     if (formatFilter !== 'all') {
       filtered = filtered.filter(team => team.format === formatFilter || (formatFilter === 'doubles' && !team.format));
     }
@@ -113,16 +113,8 @@ export default function TeamShowcase() {
     });
 
     return filtered;
-  }, [teams, searchQuery, sortBy]);
+  }, [teams, searchQuery, sortBy, formatFilter]);
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-[1400px] mx-auto text-center py-32 flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-[#2e3040] border-t-sky-500 rounded-full animate-spin"></div>
-        <h1 className="text-xl font-bold text-slate-400 animate-pulse">Loading Team Showcase...</h1>
-      </div>
-    );
-  }
 
 
   return (
@@ -132,34 +124,35 @@ export default function TeamShowcase() {
         <p className="text-slate-400">Discover, analyze, and discuss the latest Pokechamp teams built by the community.</p>
       </div>
 
+      <p role="status" className="text-center text-slate-400 mb-4 min-h-6">{isLoading ? 'Loading community teams…' : ''}</p>
       {/* Filtering and Sorting Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-[#13141c] p-4 rounded-2xl border border-[#2e3040] shadow-lg">
         <div className="relative w-full md:w-80 lg:w-[400px]">
           <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input 
-            type="text" 
-            placeholder="Search by Team Name or Pokémon..." 
+          <input
+            type="text"
+            placeholder="Search by Team Name or Pokémon..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#1a1b26] border border-[#2e3040] rounded-xl p-3 pl-10 text-white text-sm outline-none focus:border-sky-500 transition-colors shadow-inner"
           />
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <div className="flex bg-[#1a1b26] p-1 rounded-xl border border-[#2e3040] flex-shrink-0 w-full sm:w-auto">
-            <button 
+            <button
               onClick={() => setFormatFilter('all')}
               className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'all' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
             >
               All
             </button>
-            <button 
+            <button
               onClick={() => setFormatFilter('doubles')}
               className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'doubles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
             >
               Doubles
             </button>
-            <button 
+            <button
               onClick={() => setFormatFilter('singles')}
               className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-colors ${formatFilter === 'singles' ? 'bg-[#2e3040] text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
             >
@@ -169,8 +162,8 @@ export default function TeamShowcase() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <span className="text-sm font-bold text-slate-500 uppercase tracking-widest hidden lg:block">Sort By:</span>
-            <select 
-              value={sortBy} 
+            <select
+              value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full sm:w-48 bg-[#1a1b26] border border-[#2e3040] rounded-xl p-2.5 text-white text-sm font-bold outline-none focus:border-sky-500 transition-colors shadow-inner cursor-pointer"
             >
@@ -183,7 +176,7 @@ export default function TeamShowcase() {
         </div>
       </div>
 
-      {displayedTeams.length === 0 ? (
+      {isLoading ? <div aria-hidden="true" className="min-h-[360px] grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="h-[360px] rounded-xl border border-[#2e3040] bg-[#13141c]" /><div className="h-[360px] rounded-xl border border-[#2e3040] bg-[#13141c]" /></div> : displayedTeams.length === 0 ? (
         <div className="text-center py-20 bg-[#13141c] border border-[#2e3040] rounded-xl text-slate-500">
           {teams.length === 0 ? "No teams have been shared yet. Be the first to build and save a team!" : "No teams match your search filter."}
         </div>
@@ -194,19 +187,19 @@ export default function TeamShowcase() {
             if (activePokemon.length === 0) return null;
 
             return (
-              <div 
-                key={team.short_id} 
+              <div
+                key={team.short_id}
                 onClick={() => setSelectedTeam(team)}
                 className="bg-[#13141c] border border-[#2e3040] rounded-xl p-4 sm:p-6 hover:border-sky-500 hover:shadow-[0_0_20px_rgba(14,165,233,0.1)] transition-all cursor-pointer group flex flex-col justify-between"
               >
-                <div className="flex justify-between items-start sm:items-center mb-6 border-b border-[#2e3040]/50 pb-4">
+                <div className="flex flex-wrap gap-3 justify-between items-start sm:items-center mb-6 border-b border-[#2e3040]/50 pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                    <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-sky-400 transition-colors truncate max-w-[200px] sm:max-w-[250px]">
-                      {team.team_name}
-                    </h3>
+                    <h2 className="text-lg sm:text-xl font-black text-white group-hover:text-sky-400 transition-colors truncate max-w-[200px] sm:max-w-[250px]">
+                      <Link to={`/team/${encodeURIComponent(team.short_id)}`} onClick={event => event.stopPropagation()} className="hover:underline">{team.team_name || 'Untitled team'}</Link>
+                    </h2>
                     <span className="text-xs sm:text-sm text-slate-500 font-medium whitespace-nowrap">{formatDate(team.created_at)}</span>
                   </div>
-                  
+
                   {/* Hearts and Comments Display */}
                   <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-bold text-slate-500">
                     <span className="flex items-center gap-1.5 text-rose-400">
@@ -222,20 +215,20 @@ export default function TeamShowcase() {
                 </div>
 
                 {/* Horizontal Roster Strip - Centered perfectly */}
-                <div className="flex items-start justify-center gap-2 sm:gap-4 xl:gap-6 w-full">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 xl:gap-6 w-full">
                   {activePokemon.map((slot, idx) => (
-                    <div key={idx} className="flex flex-col items-center flex-1 sm:flex-none sm:w-16 xl:w-20 text-center gap-2">
+                    <div key={idx} className="flex flex-col items-center min-w-0 text-center gap-2">
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 xl:w-16 xl:h-16 flex items-center justify-center bg-[#1a1b26] rounded-full border border-[#2e3040] group-hover:border-slate-500 transition-colors flex-shrink-0">
-                        <img 
-                          src={getPokemonImageUrl(slot.pokemon!.name)} 
-                          alt={slot.pokemon!.name} 
+                        <img decoding="async" width={96} height={96}
+                          src={getPokemonImageUrl(slot.pokemon!.name)}
+                          alt={slot.pokemon!.name}
                           loading="lazy"
                           className="w-8 h-8 sm:w-10 sm:h-10 xl:w-12 xl:h-12 object-contain drop-shadow-md"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                         {slot.item && (
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6 bg-[#20222e] rounded-full border border-[#2e3040] flex items-center justify-center shadow-lg">
-                            <img src={getItemImageUrl(slot.item)} alt={slot.item} loading="lazy" className="w-2.5 h-2.5 sm:w-3 sm:h-3 xl:w-4 xl:h-4 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                            <img decoding="async" width={96} height={96} src={getItemImageUrl(slot.item)} alt={slot.item} loading="lazy" className="w-2.5 h-2.5 sm:w-3 sm:h-3 xl:w-4 xl:h-4 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         )}
                       </div>
@@ -256,11 +249,11 @@ export default function TeamShowcase() {
       {selectedTeam && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#0b0c10] border border-[#2e3040] rounded-2xl max-w-[1200px] w-full my-auto flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden max-h-[95vh]">
-            
+
             {/* Modal Header */}
             <div className="p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4 sticky top-0 z-20 shadow-md">
               <div className="flex flex-col gap-1">
-                <h3 className="text-2xl font-black text-white">{selectedTeam.team_name}</h3>
+                <h2 className="text-2xl font-black text-white">{selectedTeam.team_name}</h2>
                 <div className="flex gap-3 text-sm text-slate-400">
                   <span>ID: <span className="text-sky-400 font-mono">{selectedTeam.short_id}</span></span>
                   <span>•</span>
@@ -268,9 +261,9 @@ export default function TeamShowcase() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                
+
                 {/* Heart Control */}
-                <button 
+                <button
                   onClick={() => handleHeart(selectedTeam.short_id)}
                   className={`flex items-center gap-2 px-5 py-2 font-black transition-colors rounded-xl border shadow-inner ${votedTeams[selectedTeam.short_id] ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-[#1a1b26] text-slate-400 border-[#2e3040] hover:bg-[#20222e] hover:text-rose-400'}`}
                 >
@@ -288,12 +281,12 @@ export default function TeamShowcase() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-4 sm:p-6 custom-scrollbar space-y-6">
-              
+
               {/* Detailed Pokemon Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {selectedTeam.roster.filter(s => s.pokemon).map((slot, idx) => (
                   <div key={idx} className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                    
+
                     <div className="flex flex-col sm:flex-row gap-4 relative z-10">
                       {/* Left Info */}
                       <div className="flex-1 flex flex-col justify-start">
@@ -301,7 +294,7 @@ export default function TeamShowcase() {
                           <span className="font-black text-white text-lg tracking-tight">{slot.pokemon!.name}</span>
                           <div className="flex gap-1">
                             {slot.pokemon!.types.map(t => (
-                              <img key={t} src={getTypeIconUrl(t)} alt={t} title={t} className="w-4 h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              <img decoding="async" width={96} height={96} key={t} src={getTypeIconUrl(t)} alt={t} title={t} className="w-4 h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                             ))}
                           </div>
                         </div>
@@ -319,7 +312,7 @@ export default function TeamShowcase() {
                         <div className="flex items-center gap-2 mt-auto">
                           {slot.item ? (
                             <>
-                              <img src={getItemImageUrl(slot.item)} className="w-5 h-5 object-contain" alt={slot.item} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              <img decoding="async" width={96} height={96} src={getItemImageUrl(slot.item)} className="w-5 h-5 object-contain" alt={slot.item} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               <span className="text-sm font-bold text-yellow-400 truncate max-w-[100px]">{slot.item}</span>
                             </>
                           ) : (
@@ -330,11 +323,11 @@ export default function TeamShowcase() {
 
                       {/* Middle Sprite */}
                       <div className="w-full sm:w-24 h-24 flex items-center justify-center flex-shrink-0">
-                        <img 
-                          src={getPokemonImageUrl(slot.pokemon!.name)} 
-                          className="w-20 h-20 object-contain drop-shadow-xl" 
-                          alt={slot.pokemon!.name} 
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} 
+                        <img loading="lazy" decoding="async" width={96} height={96}
+                          src={getPokemonImageUrl(slot.pokemon!.name)}
+                          className="w-20 h-20 object-contain drop-shadow-xl"
+                          alt={slot.pokemon!.name}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                       </div>
 
@@ -346,7 +339,7 @@ export default function TeamShowcase() {
                             <div key={i} className="flex items-center gap-2">
                               {moveObj ? (
                                 <>
-                                  <img src={getTypeIconUrl(moveObj.type)} className="w-3.5 h-3.5 drop-shadow-sm object-contain flex-shrink-0" alt={moveObj.type} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                  <img decoding="async" width={96} height={96} src={getTypeIconUrl(moveObj.type)} className="w-3.5 h-3.5 drop-shadow-sm object-contain flex-shrink-0" alt={moveObj.type} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                   <span className="text-xs font-bold text-white truncate">{m}</span>
                                 </>
                               ) : (
@@ -360,7 +353,7 @@ export default function TeamShowcase() {
 
                     {/* Bottom Stat Investments */}
                     <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-[#2e3040]/50 justify-center">
-                      {slot.sp && Object.entries(slot.sp).filter(([_, val]) => val > 0).length > 0 ? (
+                      {slot.sp && Object.values(slot.sp).some(val => val > 0) ? (
                         Object.entries(slot.sp).map(([statKey, val]) => {
                           if (val === 0) return null;
                           const key = statKey as keyof BaseStats;
@@ -384,7 +377,7 @@ export default function TeamShowcase() {
 
               {/* Action Buttons */}
               <div className="flex gap-4 pt-2">
-                <Link 
+                <Link
                   to={`/team/${selectedTeam.short_id}`}
                   className="flex-1 bg-sky-500 hover:bg-sky-400 text-white font-black py-3.5 rounded-xl shadow-lg transition-colors text-center text-sm tracking-wider flex items-center justify-center gap-2"
                 >
@@ -395,7 +388,7 @@ export default function TeamShowcase() {
 
               {/* Discussion Section injected into Modal */}
               <TeamDiscussion teamId={selectedTeam.short_id} />
-              
+
             </div>
           </div>
         </div>

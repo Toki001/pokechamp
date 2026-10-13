@@ -4,9 +4,11 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: { manifest: true, assetsInlineLimit: 0 },
   plugins: [
     react(),
     ViteImageOptimizer({
+      logStats: false,
       png: {
         quality: 80,
       },
@@ -14,20 +16,7 @@ export default defineConfig({
         lossless: false,
         quality: 80,
       },
-      svg: {
-        multipass: true,
-        plugins: [
-          {
-            name: 'preset-default',
-            params: {
-              overrides: {
-                removeViewBox: false,
-                removeTitle: false,
-              },
-            },
-          } as never,
-        ],
-      },
+      svg: { multipass: true },
     }),
   ],
 })

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth';
 
 interface Comment {
   id: string;
@@ -55,14 +55,14 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
     if (!newComment.trim() || !user) return;
 
     setIsPosting(true);
-    
-    const payload: any = {
+
+    const payload: { team_id: string; author_name: string; content: string; user_id: string; parent_id?: string } = {
       team_id: teamId,
       author_name: authorName.trim() || user.user_metadata?.username || user.email?.split('@')[0] || 'Trainer',
       content: newComment.trim(),
       user_id: user.id
     };
-    
+
     if (replyTo) {
       payload.parent_id = replyTo;
     }
@@ -89,12 +89,12 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
 
   return (
     <div className="w-full bg-[#13141c] border border-[#2e3040] rounded-xl p-8 shadow-2xl mt-8">
-      <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3">
+      <h2 className="text-xl font-black text-white mb-6 flex items-center gap-3">
         Team Discussion
         <span className="bg-sky-500/20 text-sky-400 text-xs px-3 py-1 rounded-full border border-sky-500/30">
           {comments.length} Comments
         </span>
-      </h3>
+      </h2>
 
       <div className="space-y-6 mb-8 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
         {topLevelComments.length === 0 ? (
@@ -110,17 +110,17 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
                   <span className="text-xs text-slate-500 font-mono">{formatDate(comment.created_at)}</span>
                 </div>
                 <p className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">{comment.content}</p>
-                
+
                 {/* Reply Button Aligned Right with Icon - ALWAYS VISIBLE */}
                 <div className="flex justify-end mt-4 pt-3 border-t border-[#2e3040]/50">
-                  <button 
+                  <button
                     onClick={() => {
                       if (user) {
                         setReplyTo(comment.id);
                       } else {
                         setAuthModalOpen(true);
                       }
-                    }} 
+                    }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-white rounded-lg text-xs font-bold transition-all border border-sky-500/30 shadow-sm"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
@@ -151,7 +151,7 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
         {!user ? (
           <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-8 text-center flex flex-col items-center justify-center">
             <p className="text-slate-300 font-bold mb-4">You must be logged in to join the discussion.</p>
-            <button 
+            <button
               onClick={() => setAuthModalOpen(true)}
               className="px-8 py-3 bg-sky-500 text-white font-black rounded-xl hover:bg-sky-400 transition-colors shadow-lg uppercase tracking-widest text-sm"
             >
@@ -169,7 +169,7 @@ export default function TeamDiscussion({ teamId }: TeamDiscussionProps) {
                 <button onClick={() => setReplyTo(null)} className="hover:text-white font-black">✕</button>
               </div>
             )}
-            
+
             <form onSubmit={handlePostComment} className="flex flex-col gap-3">
               <input
                 type="text"

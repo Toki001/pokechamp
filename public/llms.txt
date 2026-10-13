@@ -29,8 +29,14 @@
 ## Technical Details
 
 - Built with React 19, TypeScript, Vite, and TailwindCSS
-- Backend: Supabase (PostgreSQL with real-time subscriptions)
+- Backend: Supabase (authentication, team storage, and discussion updates)
 - Deployed on Vercel
 - 262 competitive Pokémon from the championship Pokédex
 - 166 held items, 18 type icons, move category icons
 - All Pokémon sprites in WebP format
+
+## Data and ownership
+
+- Meta statistics are a bundled snapshot. Check the displayed update date before treating them as current.
+- Public shared rosters use `/team/{id}`. Team IDs are stable and must not be lowercased or renamed.
+- PokéChamp is an independent fan tool, not affiliated with Nintendo, Game Freak, or The Pokémon Company.

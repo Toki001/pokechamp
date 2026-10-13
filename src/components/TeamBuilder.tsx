@@ -1,15 +1,18 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth';
 
 import type { TeamSlot, ChampionsPokemon, BaseStats, Nature } from '../types';
-import { NATURES, STAT_LABELS, STAT_METADATA, TYPE_COLORS, ALL_TYPES, PARSED_CHAMPIONS_LIST, PARSED_ITEMS_LIST } from '../utils/constants';
+import { NATURES, STAT_LABELS, STAT_METADATA, TYPE_COLORS, ALL_TYPES } from '../utils/constants';
 import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl, getMoveCategoryUrl, calculateLvl50StatForSlot } from '../utils/helpers';
-import rawMetaStats from '../data/metaroll_stats.json';
+import { PARSED_CHAMPIONS_LIST, PARSED_ITEMS_LIST } from '../utils/champions';
+import moveUsage from '../data/generated/move-usage.json';
+
+const usageByPokemon: Record<string, Record<string, string>> = moveUsage;
 
 const CompactTypeBadge = ({ type }: { type: string }) => (
-  <img
+  <img decoding="async" width={96} height={96}
     src={getTypeIconUrl(type)}
     alt={type}
     title={type}
@@ -69,6 +72,7 @@ export default function TeamBuilder() {
   const [team, setTeam] = useState<TeamSlot[]>(INITIAL_TEAM);
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [visibleCount, setVisibleCount] = useState(40);
   const [statView, setStatView] = useState<'lvl50' | 'base'>('lvl50');
   const [pokemonTypeFilters, setPokemonTypeFilters] = useState<string[]>([]);
   const [typeLogic, setTypeLogic] = useState<'AND' | 'OR'>('AND');
@@ -79,7 +83,8 @@ export default function TeamBuilder() {
   const [teamFormat, setTeamFormat] = useState<'doubles' | 'singles'>('doubles');
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(teamId));
+  const [teamError, setTeamError] = useState<string | null>(null);
   const [shareableLink, setShareableLink] = useState<string | null>(null);
 
   const [activeMoveSlotIndex, setActiveMoveSlotIndex] = useState<number | null>(null);
@@ -124,32 +129,36 @@ export default function TeamBuilder() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchTeam = async () => {
+      setTeamError(null);
       if (!teamId) {
         setTeam(INITIAL_TEAM);
+        setTeamName('My Team');
+        setShareableLink(null);
+        setIsLoading(false);
         return;
       }
-
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('teams')
-        .select('roster, team_name')
-        .eq('short_id', teamId)
-        .single();
-
-      if (error || !data) {
-        alert('Team not found. Redirecting to new builder.');
-        navigate('/');
-      } else if (data.roster) {
-        setTeam(data.roster as TeamSlot[]);
-        setTeamName(data.team_name || 'Imported Team');
-        setShareableLink(`${window.location.origin}/team/${teamId}`);
+      try {
+        const { data, error } = await supabase.from('teams').select('roster, team_name').eq('short_id', teamId).maybeSingle();
+        if (cancelled) return;
+        if (error) setTeamError('Unable to load this team. Please try again later.');
+        else if (!data?.roster) setTeamError('This shared team could not be found.');
+        else {
+          setTeam(data.roster as TeamSlot[]);
+          setTeamName(data.team_name || 'Imported Team');
+          setShareableLink(`${window.location.origin}/team/${encodeURIComponent(teamId)}`);
+        }
+      } catch {
+        if (!cancelled) setTeamError('Unable to load this team. Please try again later.');
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      setIsLoading(false);
     };
-
     fetchTeam();
-  }, [teamId, navigate]);
+    return () => { cancelled = true; };
+  }, [teamId]);
 
   const SP_TOTAL_LIMIT = 66;
   const SP_STAT_LIMIT = 32;
@@ -203,7 +212,7 @@ export default function TeamBuilder() {
       results = results.filter((mon) => mon.name.toLowerCase().includes(query));
     }
     return results;
-  }, [searchTerm, team, pokemonTypeFilters, pokemonAbilityFilter]);
+  }, [searchTerm, team, pokemonTypeFilters, pokemonAbilityFilter, typeLogic, moveLogic, pokemonMoveFilters]);
 
 
   const filteredMoves = useMemo(() => {
@@ -230,14 +239,8 @@ export default function TeamBuilder() {
       );
     }
 
-    const metaDoubles = (rawMetaStats as any).doubles || [];
-    const monMeta = metaDoubles.find((m: any) => m.pokemon === activeSlot.pokemon!.name);
-
-    const getUsage = (moveName: string) => {
-      if (!monMeta) return 0;
-      const move = monMeta.moves.find((m: any) => m.name === moveName);
-      return move ? parseFloat(move.usage.replace('%', '')) : 0;
-    };
+    const monUsage = usageByPokemon[activeSlot.pokemon.name] || {};
+    const getUsage = (moveName: string) => parseFloat(monUsage[moveName] || '0');
 
     availableMoves.sort((a, b) => {
       if (moveSort === 'Most Used') {
@@ -397,7 +400,7 @@ export default function TeamBuilder() {
               rawText = pres.map(pre => pre.textContent || '').join('\n\n');
             }
           }
-        } catch (e) {
+        } catch {
           console.warn("Proxy connection refused. Pokepaste is blocking automated requests.");
         }
       }
@@ -434,7 +437,7 @@ export default function TeamBuilder() {
 
         const firstLine = lines[0];
         let pokemonName = firstLine.split('@')[0].trim();
-        let item = firstLine.split('@')[1]?.trim() || '';
+        const item = firstLine.split('@')[1]?.trim() || '';
 
         // Handle Nicknames (e.g. "Nickname (RealName)")
         if (pokemonName.includes('(') && pokemonName.includes(')')) {
@@ -507,7 +510,7 @@ export default function TeamBuilder() {
       setIsImportModalOpen(false);
       setImportInput('');
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       alert('Failed to parse the team format. Ensure you pasted valid Showdown text.');
     } finally {
@@ -549,21 +552,31 @@ export default function TeamBuilder() {
     }
   };
 
+  if (teamError) return (
+    <section className="w-full max-w-3xl mx-auto py-12">
+      <h1 className="text-3xl font-bold text-white">Shared Team Unavailable</h1>
+      <p className="mt-4 text-slate-400" role="status">{teamError}</p>
+      <Link to="/team-showcase" className="inline-flex items-center mt-6 text-sky-400 underline">Browse community teams</Link>
+    </section>
+  );
+
   if (isLoading) {
     return (
       <div className="w-full max-w-[1000px] mx-auto text-center py-32 flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-slate-700 border-t-sky-500 rounded-full animate-spin"></div>
-        <h2 className="text-xl font-bold text-slate-300 animate-pulse">Hydrating Cloud Roster...</h2>
+        <h1 className="text-xl font-bold text-slate-300">Loading Shared Pokémon Team</h1>
       </div>
     );
   }
 
-  let totalRawStats = 0;
-  let totalCalcStats = 0;
+  const totalCalcStats = activeSlot.pokemon ? STAT_LABELS.reduce((sum, stat) => sum + calculateLvl50StatForSlot(activeSlot, stat.key), 0) : 0;
 
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
-      <h1 className="sr-only">Competitive Pokémon Team Builder</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-black text-white">{teamId ? 'Shared Pokémon Team' : 'Competitive Pokémon Team Builder'}</h1>
+        <p className="mt-2 text-sm text-slate-400">Configure a six-Pokémon roster, compare defensive coverage, and share your strategy. Find inspiration in the <Link to="/team-showcase" className="text-sky-400 underline">team showcase</Link> and <Link to="/analytics" className="text-sky-400 underline">meta analytics</Link>.</p>
+      </div>
       {/* Top Header - Updated Team Name Input Container */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#13141c] border border-[#2e3040] p-4 sm:p-6 rounded-2xl shadow-lg">
 
@@ -711,10 +724,10 @@ export default function TeamBuilder() {
 
                     {/* Sprite with Item Overlay */}
                     <div className="flex justify-center mb-3 sm:mb-4 xl:mb-6 relative">
-                      <img src={getPokemonImageUrl(slot.pokemon.name)} className="h-14 sm:h-16 lg:h-20 xl:h-32 object-contain drop-shadow-2xl relative z-10 transition-all" alt={slot.pokemon.name} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <img decoding="async" width={96} height={96} src={getPokemonImageUrl(slot.pokemon.name)} className="h-14 sm:h-16 lg:h-20 xl:h-32 object-contain drop-shadow-2xl relative z-10 transition-all" alt={slot.pokemon.name} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                       {slot.item && (
                         <div className="absolute -bottom-2 z-20 bg-[#20222e] rounded-full px-2 xl:px-3 py-0.5 xl:py-1 border border-[#323445] shadow-lg flex items-center gap-1.5 max-w-[95%]">
-                          <img src={getItemImageUrl(slot.item)} className="w-3 h-3 xl:w-4 xl:h-4 object-contain" alt={slot.item} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                          <img decoding="async" width={96} height={96} src={getItemImageUrl(slot.item)} className="w-3 h-3 xl:w-4 xl:h-4 object-contain" alt={slot.item} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                           <span className="text-[9px] xl:text-xs font-black text-white truncate hidden sm:block">{slot.item}</span>
                         </div>
                       )}
@@ -733,7 +746,7 @@ export default function TeamBuilder() {
                           <div key={i} className="flex items-center gap-1.5 xl:gap-3">
                             {moveDetails ? (
                               <>
-                                <img src={getTypeIconUrl(moveDetails.type)} className="w-3.5 h-3.5 xl:w-5 xl:h-5 drop-shadow-sm flex-shrink-0 object-contain" alt={moveDetails.type} title={moveDetails.type} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img decoding="async" width={96} height={96} src={getTypeIconUrl(moveDetails.type)} className="w-3.5 h-3.5 xl:w-5 xl:h-5 drop-shadow-sm flex-shrink-0 object-contain" alt={moveDetails.type} title={moveDetails.type} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <span className="text-[9px] sm:text-[10px] xl:text-sm font-bold text-slate-200 truncate">{m}</span>
                               </>
                             ) : (
@@ -811,14 +824,15 @@ export default function TeamBuilder() {
               EDITING SLOT {activeIndex + 1}
             </div>
 
+            {!activeSlot.pokemon && <h2 className="text-xl font-bold text-white mb-4">Choose a Pokémon</h2>}
             {!activeSlot.pokemon ? (
-              <div className="pt-8 sm:pt-4 flex flex-col md:flex-row h-[700px] gap-6">
+              <div className="pt-8 sm:pt-4 flex flex-col md:flex-row min-h-[700px] md:h-[700px] gap-6">
 
                 {/* Left Sidebar Filters */}
                 {/* Left Sidebar Filters */}
-                <div className="w-full md:w-[250px] bg-[#13141c] border border-[#2e3040] rounded-xl p-4 flex flex-col gap-4 flex-shrink-0 shadow-inner md:h-full">
+                <div className="w-full md:w-[250px] bg-[#13141c] border border-[#2e3040] rounded-xl p-4 flex flex-col gap-4 flex-shrink-0 shadow-inner md:h-full md:overflow-y-auto">
                   <div>
-                    <h4 className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Search</h4>
+                    <p className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Search</p>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -835,10 +849,10 @@ export default function TeamBuilder() {
 
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pokémon Type</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pokémon Type</p>
                       <div className="flex items-center gap-1.5 bg-[#1a1b26] p-0.5 rounded border border-[#2e3040]">
                         <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${typeLogic === 'AND' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setTypeLogic('AND')}>And</span>
-                        <div 
+                        <div
                           className="relative inline-flex items-center cursor-pointer w-5 h-2.5 rounded-full bg-[#2e3040]"
                           onClick={() => setTypeLogic(typeLogic === 'AND' ? 'OR' : 'AND')}
                         >
@@ -868,7 +882,7 @@ export default function TeamBuilder() {
                             className={`flex items-center justify-center gap-1 px-1 py-1 rounded text-[8px] font-bold border transition-colors w-[68px] ${isSelected ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title={type}
                           >
-                            <img src={getTypeIconUrl(type)} alt={type} className="w-3 h-3 object-contain" />
+                            <img decoding="async" width={96} height={96} src={getTypeIconUrl(type)} alt={type} className="w-3 h-3 object-contain" />
                             <span className="truncate">{type}</span>
                           </button>
                         );
@@ -878,10 +892,10 @@ export default function TeamBuilder() {
 
                   <div className="relative" ref={moveDropdownRef}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Move</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Move</p>
                       <div className="flex items-center gap-1.5 bg-[#1a1b26] p-0.5 rounded border border-[#2e3040]">
                         <span className={`text-[8px] font-bold px-1.5 rounded-sm cursor-pointer transition-colors ${moveLogic === 'AND' ? 'bg-[#2e3040] text-white' : 'text-slate-500'}`} onClick={() => setMoveLogic('AND')}>And</span>
-                        <div 
+                        <div
                           className="relative inline-flex items-center cursor-pointer w-5 h-2.5 rounded-full bg-[#2e3040]"
                           onClick={() => setMoveLogic(moveLogic === 'AND' ? 'OR' : 'AND')}
                         >
@@ -924,7 +938,7 @@ export default function TeamBuilder() {
                                 setIsMoveDropdownOpen(false);
                               }}
                             >
-                              <img src={getTypeIconUrl(m.type)} alt={m.type} className="w-3.5 h-3.5 object-contain" />
+                              <img decoding="async" width={96} height={96} src={getTypeIconUrl(m.type)} alt={m.type} className="w-3.5 h-3.5 object-contain" />
                               {m.name}
                             </div>
                           ))
@@ -936,7 +950,7 @@ export default function TeamBuilder() {
                   </div>
 
                   <div className="relative" ref={abilityDropdownRef}>
-                    <h4 className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Ability</h4>
+                    <p className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Ability</p>
                     {pokemonAbilityFilter && (
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         <div className="bg-emerald-900/30 text-emerald-300 text-[9px] px-2 py-0.5 rounded flex items-center gap-1 border border-emerald-700/50">
@@ -981,7 +995,7 @@ export default function TeamBuilder() {
                 </div>
 
                 {/* Table Structure List */}
-                <div className="flex flex-col flex-1 bg-[#1a1b26] border border-[#2e3040] rounded-xl overflow-hidden shadow-inner overflow-x-auto">
+                <div className="flex flex-col flex-1 min-h-0 h-[480px] max-h-[480px] md:h-auto md:max-h-none bg-[#1a1b26] border border-[#2e3040] rounded-xl overflow-hidden shadow-inner overflow-x-auto">
                   <div className="min-w-[650px] flex flex-col h-full pt-2">
                     <div className="flex justify-end px-4 mb-2">
                       <div className="flex bg-[#13141c] rounded-lg border border-[#2e3040] p-1 shadow-md">
@@ -1013,14 +1027,15 @@ export default function TeamBuilder() {
                     {/* Scrolling Content */}
                     <div className="overflow-y-auto flex-1 custom-scrollbar">
                       {searchResults.length > 0 ? (
-                        searchResults.map((mon) => (
+                        <>
+                        {searchResults.slice(0, visibleCount).map((mon) => (
                           <div
                             key={mon.name}
                             onClick={() => handleSelectPokemon(mon)}
                             className="grid grid-cols-[minmax(180px,_1fr)_repeat(6,_minmax(40px,_60px))] gap-2 sm:gap-6 items-center px-6 py-3 border-b border-[#2e3040]/50 hover:bg-[#20222e] cursor-pointer transition-colors"
                           >
                             <div className="flex items-center gap-4">
-                              <img
+                              <img decoding="async" width={96} height={96}
                                 src={getPokemonImageUrl(mon.name)}
                                 alt={mon.name}
                                 loading="lazy"
@@ -1042,7 +1057,9 @@ export default function TeamBuilder() {
                             <div className="text-center font-black font-mono text-purple-400">{getListStat(mon.baseStats.spd, 'spd')}</div>
                             <div className="text-center font-black font-mono text-fuchsia-500">{getListStat(mon.baseStats.spe, 'spe')}</div>
                           </div>
-                        ))
+                        ))}
+                        {searchResults.length > visibleCount && <button type="button" onClick={() => setVisibleCount(count => count + 40)} className="w-full py-3 text-sky-400 font-bold">Show more Pokémon ({searchResults.length - visibleCount} remaining)</button>}
+                        </>
                       ) : (
                         <div className="py-16 text-center text-slate-500 font-bold text-lg">
                           No Pokémon matched your search.
@@ -1058,7 +1075,7 @@ export default function TeamBuilder() {
                 {/* Header: Change Pokémon Button - Mobile Stacked */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-[#2e3040] pb-6">
                   <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <img src={getPokemonImageUrl(activeSlot.pokemon.name)} className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-md" alt={activeSlot.pokemon.name} />
+                    <img decoding="async" width={96} height={96} src={getPokemonImageUrl(activeSlot.pokemon.name)} className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-md" alt={activeSlot.pokemon.name} />
                     <span className="truncate">{activeSlot.pokemon.name} Setup</span>
                   </h2>
                   <button
@@ -1140,7 +1157,7 @@ export default function TeamBuilder() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded bg-[#20222e] flex items-center justify-center flex-shrink-0 group-hover:bg-[#2a2d3d] transition-colors border border-[#323445]">
                             {activeSlot.item ? (
-                              <img src={getItemImageUrl(activeSlot.item)} alt={activeSlot.item} className="w-7 h-7 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              <img decoding="async" width={96} height={96} src={getItemImageUrl(activeSlot.item)} alt={activeSlot.item} className="w-7 h-7 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                             ) : (
                               <span className="text-slate-500 font-bold text-lg">+</span>
                             )}
@@ -1195,11 +1212,8 @@ export default function TeamBuilder() {
                     const meta = STAT_METADATA[key];
                     const currentSp = activeSlot.sp[key];
 
-                    const rawStat = baseValue + currentSp;
                     const statAtZeroSp = calculateLvl50StatForSlot(activeSlot, key);
 
-                    totalRawStats += rawStat;
-                    totalCalcStats += statAtZeroSp;
 
                     const baseWidth = Math.min((baseValue / METER_ABSOLUTE_MAX) * 100, 100);
                     const addedWidth = Math.min((currentSp / METER_ABSOLUTE_MAX) * 100, 100 - baseWidth);
@@ -1216,8 +1230,8 @@ export default function TeamBuilder() {
                           <span className="text-right w-full">{meta.label}</span>
                         </div>
 
-                        <div className="flex-grow flex items-center gap-2 sm:gap-4 min-w-[20px]">
-                          <div className="flex flex-col justify-center w-full max-w-[200px] flex-shrink-0">
+                        <div className="flex-grow min-w-0 flex items-center gap-2 sm:gap-4">
+                          <div className="flex flex-col justify-center w-full max-w-[200px] min-w-0">
                             <div className="h-2 sm:h-3 bg-[#20222e] rounded-full flex overflow-hidden w-full shadow-inner">
                               <div className={`${meta.colorBase} h-full transition-all duration-300`} style={{ width: `${baseWidth}%` }}></div>
                               <div className={`${meta.colorAdded} h-full transition-all duration-300`} style={{ width: `${addedWidth}%` }}></div>
@@ -1322,8 +1336,8 @@ export default function TeamBuilder() {
                           {moveDetails ? (
                             <div className="flex-1 pr-4">
                               <div className="flex items-center gap-3 mb-2">
-                                <img src={getTypeIconUrl(moveDetails.type)} alt={moveDetails.type} title={moveDetails.type} className="w-5 h-5 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                                <img src={getMoveCategoryUrl(moveDetails.category)} alt={moveDetails.category} title={moveDetails.category} className="h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img decoding="async" width={96} height={96} src={getTypeIconUrl(moveDetails.type)} alt={moveDetails.type} title={moveDetails.type} className="w-5 h-5 drop-shadow-sm flex-shrink-0 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img decoding="async" width={96} height={96} src={getMoveCategoryUrl(moveDetails.category)} alt={moveDetails.category} title={moveDetails.category} className="h-4 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               </div>
                               <span className="font-black text-xl text-white group-hover:text-sky-400 transition-colors">{moveDetails.name}</span>
 
@@ -1364,22 +1378,22 @@ export default function TeamBuilder() {
         </div>
 
         {/* RIGHT COLUMN: Defensive Coverage Sidebar */}
-        <div className="w-full lg:w-[280px] xl:w-[350px] flex-shrink-0 sticky top-6 mt-6 lg:mt-0">
+        <div className="w-full lg:w-[280px] xl:w-[350px] flex-shrink-0 lg:sticky lg:top-28 mt-6 lg:mt-0 self-start">
           <div className="bg-[#13141c] border border-[#2e3040] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
 
             {/* Header */}
             <div className="p-4 xl:p-5 border-b border-[#2e3040] bg-[#1a1b26]">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Team Defense</h3>
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Team Defense</h2>
 
               <div className="mb-4 xl:mb-5">
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                   Shared Weaknesses
                   <span className="w-4 h-4 bg-[#20222e] rounded flex items-center justify-center text-[9px] text-slate-400 border border-[#2e3040]">≥2</span>
-                </h4>
+                </p>
                 <div className="flex flex-wrap gap-2 xl:gap-3 min-h-[28px]">
                   {sharedWeaknesses.length > 0 ? sharedWeaknesses.map(d => (
                     <div key={d.type} className="flex items-center gap-2 bg-rose-500/10 text-rose-400 px-2 xl:px-3 py-1.5 rounded border border-rose-500/30">
-                      <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-4 h-4 xl:w-5 xl:h-5 opacity-90 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <img decoding="async" width={96} height={96} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-4 h-4 xl:w-5 xl:h-5 opacity-90 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                       <span className="text-[11px] font-black">{d.weakCount}</span>
                     </div>
                   )) : <span className="text-xs text-slate-600 font-bold italic py-1">None</span>}
@@ -1387,13 +1401,13 @@ export default function TeamBuilder() {
               </div>
 
               <div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                   Unresisted
                   <span className="w-4 h-4 bg-[#20222e] rounded flex items-center justify-center text-[9px] text-slate-400 border border-[#2e3040]">0</span>
-                </h4>
+                </p>
                 <div className="flex flex-wrap gap-2 xl:gap-3 min-h-[24px]">
                   {unresisted.length > 0 ? unresisted.map(d => (
-                    <img key={d.type} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <img decoding="async" width={96} height={96} key={d.type} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                   )) : <span className="text-xs text-slate-600 font-bold italic py-1">None</span>}
                 </div>
               </div>
@@ -1409,7 +1423,7 @@ export default function TeamBuilder() {
                       <div className="w-6 xl:w-8 flex-shrink-0"></div>
                       {activeTeamMembers.map((slot, i) => (
                         <div key={i} className="flex-1 min-w-[30px] flex justify-center relative group">
-                          <img
+                          <img loading="lazy" decoding="async" width={96} height={96}
                             src={getPokemonImageUrl(slot.pokemon!.name)}
                             alt={slot.pokemon!.name}
                             className="w-6 h-6 xl:w-7 xl:h-7 object-contain drop-shadow-md z-10 hover:scale-125 transition-transform origin-bottom"
@@ -1431,7 +1445,7 @@ export default function TeamBuilder() {
                     <div key={d.type} className="flex items-center justify-between py-1.5 border-b border-[#2e3040]/40 hover:bg-[#1a1b26] rounded-md px-1 -mx-1 transition-colors">
                       <div className="flex items-center flex-1">
                         <div className="w-6 xl:w-8 flex justify-center flex-shrink-0">
-                          <img src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                          <img decoding="async" width={96} height={96} src={getTypeIconUrl(d.type)} alt={d.type} title={d.type} loading="lazy" className="w-5 h-5 xl:w-6 xl:h-6 drop-shadow-sm object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                         </div>
 
                         {d.row.map((r, i) => {
@@ -1485,7 +1499,7 @@ export default function TeamBuilder() {
             >
               ✕
             </button>
-            <h3 className="text-2xl font-black text-white mb-2 text-center">Import Team</h3>
+            <h2 className="text-2xl font-black text-white mb-2 text-center">Import Team</h2>
             <p className="text-slate-400 text-sm text-center mb-6">Paste a Poképaste URL, or paste your raw Showdown text directly below.</p>
 
             <textarea
@@ -1513,7 +1527,7 @@ export default function TeamBuilder() {
           <div className="bg-[#1a1b26] border border-[#2e3040] rounded-2xl max-w-[70rem] w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-[#2e3040] bg-[#13141c] flex justify-between items-center shadow-md z-10">
               <div>
-                <h3 className="text-xl font-black text-white">Select Move</h3>
+                <h2 className="text-xl font-black text-white">Select Move</h2>
                 <p className="text-sm text-sky-400 font-bold mt-1">Slot {activeMoveSlotIndex + 1}</p>
               </div>
               <button
@@ -1531,7 +1545,7 @@ export default function TeamBuilder() {
               {/* Left Sidebar Filters */}
               <div className="w-full md:w-[250px] bg-[#13141c] border-b md:border-b-0 md:border-r border-[#2e3040] p-4 flex flex-col gap-5 overflow-y-auto custom-scrollbar flex-shrink-0">
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</h4>
+                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</p>
                   <input
                     type="text"
                     placeholder="Search moves..."
@@ -1542,7 +1556,7 @@ export default function TeamBuilder() {
                 </div>
 
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Sort</h4>
+                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Sort</p>
                   <select
                     value={moveSort}
                     onChange={(e) => setMoveSort(e.target.value)}
@@ -1555,7 +1569,7 @@ export default function TeamBuilder() {
                 </div>
 
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Damage Class</h4>
+                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Damage Class</p>
                   <div className="flex flex-col gap-1.5">
                     {['All', 'Physical', 'Special', 'Status'].map(cat => (
                       <button
@@ -1563,7 +1577,7 @@ export default function TeamBuilder() {
                         onClick={() => setMoveCategoryFilter(cat)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${moveCategoryFilter === cat ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
                       >
-                        {cat !== 'All' && <img src={getMoveCategoryUrl(cat)} alt={cat} className="w-4 h-4 object-contain" />}
+                        {cat !== 'All' && <img decoding="async" width={96} height={96} src={getMoveCategoryUrl(cat)} alt={cat} className="w-4 h-4 object-contain" />}
                         {cat}
                       </button>
                     ))}
@@ -1571,7 +1585,7 @@ export default function TeamBuilder() {
                 </div>
 
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Type</h4>
+                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Type</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
                       onClick={() => setMoveTypeFilter('All')}
@@ -1585,7 +1599,7 @@ export default function TeamBuilder() {
                         onClick={() => setMoveTypeFilter(type)}
                         className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-bold border transition-colors ${moveTypeFilter === type ? 'bg-[#20222e] border-sky-500 text-white shadow-sm' : 'bg-[#1a1b26] border-[#2e3040] text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
                       >
-                        <img src={getTypeIconUrl(type)} alt={type} className="w-3.5 h-3.5 object-contain" />
+                        <img decoding="async" width={96} height={96} src={getTypeIconUrl(type)} alt={type} className="w-3.5 h-3.5 object-contain" />
                         <span className="truncate">{type}</span>
                       </button>
                     ))}
@@ -1594,7 +1608,7 @@ export default function TeamBuilder() {
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 overflow-y-auto bg-[#13141c] custom-scrollbar">
+              <div className="flex-1 min-h-0 overflow-auto bg-[#13141c] custom-scrollbar">
                 <div className="min-w-[500px]">
                   <div className="grid grid-cols-[160px_60px_1fr_45px_45px_45px] gap-3 px-6 py-3 border-b border-[#2e3040] text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-[#13141c] z-10 shadow-sm">
                     <div>Move</div>
@@ -1607,7 +1621,7 @@ export default function TeamBuilder() {
 
                   <div className="flex flex-col gap-2 p-4 pt-3">
                     {filteredMoves.map((m) => {
-                      const usagePct = (rawMetaStats as any).doubles?.find((md: any) => md.pokemon === activeSlot.pokemon!.name)?.moves.find((md: any) => md.name === m.name)?.usage || '0.0%';
+                      const usagePct = usageByPokemon[activeSlot.pokemon!.name]?.[m.name] || '0.0%';
 
                       return (
                         <div
@@ -1616,8 +1630,8 @@ export default function TeamBuilder() {
                           className="grid grid-cols-[160px_60px_1fr_45px_45px_45px] gap-3 px-4 py-3 bg-[#1a1b26] border border-[#2e3040] hover:border-sky-500 hover:bg-[#20222e] rounded-xl cursor-pointer transition-all items-center group shadow-sm min-h-[80px]"
                         >
                           <div className="flex items-center gap-2">
-                            <img src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-4 h-4 flex-shrink-0 object-contain" />
-                            <img src={getMoveCategoryUrl(m.category)} alt={m.category} title={m.category} className="w-4 h-4 flex-shrink-0 object-contain" />
+                            <img decoding="async" width={96} height={96} src={getTypeIconUrl(m.type)} alt={m.type} title={m.type} className="w-4 h-4 flex-shrink-0 object-contain" />
+                            <img decoding="async" width={96} height={96} src={getMoveCategoryUrl(m.category)} alt={m.category} title={m.category} className="w-4 h-4 flex-shrink-0 object-contain" />
                             <span className="font-black text-xs sm:text-sm text-white group-hover:text-sky-400 transition-colors truncate">{m.name}</span>
                           </div>
 
@@ -1650,14 +1664,14 @@ export default function TeamBuilder() {
               ✕
             </button>
             <div className="p-6 border-b border-[#2e3040] relative z-10 bg-[#13141c]">
-              <h3 className="text-2xl font-black text-white flex items-center gap-3">
+              <h2 className="text-2xl font-black text-white flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#20222e] flex items-center justify-center border border-[#2e3040]">
                   <span className="text-slate-500 font-bold text-lg">+</span>
                 </div>
                 Select Held Item
-              </h3>
+              </h2>
               <div className="mt-6">
-                <h4 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</h4>
+                <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Search</p>
                 <div className="relative">
                   <input
                     type="text"
@@ -1670,7 +1684,7 @@ export default function TeamBuilder() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-[#13141c] custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-auto bg-[#13141c] custom-scrollbar">
               <div className="flex flex-col gap-2 p-4 pt-3">
                 {PARSED_ITEMS_LIST.filter(i => i.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) || i.description.toLowerCase().includes(itemSearchQuery.toLowerCase())).map((i) => (
                   <div
@@ -1681,7 +1695,7 @@ export default function TeamBuilder() {
                     }}
                     className="flex items-center gap-4 px-4 py-3 bg-[#1a1b26] border border-[#2e3040] hover:border-sky-500 hover:bg-[#20222e] rounded-xl cursor-pointer transition-all shadow-sm group"
                   >
-                    <img src={getItemImageUrl(i.name)} alt={i.name} title={i.name} className="w-8 h-8 flex-shrink-0 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <img decoding="async" width={96} height={96} src={getItemImageUrl(i.name)} alt={i.name} title={i.name} className="w-8 h-8 flex-shrink-0 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                     <div className="flex flex-col">
                       <span className="font-black text-sm text-white group-hover:text-sky-400 transition-colors">{i.name}</span>
                       <span className="text-xs text-slate-400 line-clamp-2">{i.description}</span>

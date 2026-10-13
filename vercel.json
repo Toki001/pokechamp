@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/team-showcase",
+      "destination": "/team-showcase/index.html"
+    },
+    {
+      "source": "/analytics",
+      "destination": "/analytics/index.html"
+    },
+    {
+      "source": "/team/:teamId",
+      "destination": "/team/index.html"
     }
   ],
   "headers": [
@@ -48,6 +56,40 @@
           "value": "public, max-age=86400"
         }
       ]
+    }
+  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/team-builder",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/showcase",
+      "destination": "/team-showcase",
+      "permanent": true
+    },
+    {
+      "source": "/meta-analytics",
+      "destination": "/analytics",
+      "permanent": true
+    },
+    {
+      "source": "/team-showcase/index.html",
+      "destination": "/team-showcase",
+      "permanent": true
+    },
+    {
+      "source": "/analytics/index.html",
+      "destination": "/analytics",
+      "permanent": true
     }
   ]
 }

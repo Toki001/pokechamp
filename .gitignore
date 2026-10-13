@@ -25,3 +25,5 @@ dist-ssr
 .env.local
 
 .venv
+src/data/generated/
+.prerender/

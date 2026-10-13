@@ -1,6 +1,4 @@
-import championsRawData from '../data/pokemon_championsdex_full.json';
-import itemsRawData from '../data/pokemon_items.json';
-import type { Nature, BaseStats, ChampionsPokemon, ItemData, TypeDefenseItem } from '../types';
+import type { Nature, BaseStats } from '../types';
 
 export const NATURES: Nature[] = [
   { name: 'Adamant', raises: 'atk', lowers: 'spa' },
@@ -57,27 +55,3 @@ export const TYPE_COLORS: Record<string, string> = {
 };
 
 export const ALL_TYPES = Object.keys(TYPE_COLORS);
-
-export const PARSED_CHAMPIONS_LIST: ChampionsPokemon[] = Object.values(championsRawData).map((raw: any) => ({
-  pokemon: raw.pokemon,
-  name: raw.pokemon,
-  types: raw.types || [],
-  bst: Number(raw.base_stats?.BST || 0),
-  baseStats: {
-    hp: Number(raw.base_stats?.spread?.HP || 0),
-    atk: Number(raw.base_stats?.spread?.Atk || 0),
-    def: Number(raw.base_stats?.spread?.Def || 0),
-    spa: Number(raw.base_stats?.spread?.SpA || 0),
-    spd: Number(raw.base_stats?.spread?.SpD || 0),
-    spe: Number(raw.base_stats?.spread?.Spe || 0)
-  },
-  abilities: raw.abilities || [],
-  moves: raw.moves || [],
-  typeDefenses: {
-    weakTo: (raw.type_defenses?.['Weak to'] || []).filter((w: TypeDefenseItem) => w.type !== 'None'),
-    resists: (raw.type_defenses?.Resists || []).filter((r: TypeDefenseItem) => r.type !== 'None'),
-    immuneTo: (raw.type_defenses?.['Immune to'] || []).filter((i: TypeDefenseItem) => i.type !== 'None')
-  }
-}));
-
-export const PARSED_ITEMS_LIST: ItemData[] = itemsRawData as ItemData[];

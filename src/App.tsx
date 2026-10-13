@@ -1,17 +1,19 @@
+import { lazy, Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import TeamBuilder from './components/TeamBuilder';
-import TeamShowcase from './components/TeamShowcase';
-import Analytics from './components/Analytics';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import AuthModal from './components/AuthModal';
+import { routePages } from './route-pages';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './contexts/auth';
 import SEOHead from './components/SEOHead';
 import SchemaMarkup from './components/SchemaMarkup';
 import Footer from './components/Footer';
 import { supabase } from './utils/supabaseClient';
 
+const AuthModal = lazy(() => import('./components/AuthModal'));
+
 // Inner component to access AuthContext and Location for the Header
-function AppContent() {
-  const { user, setAuthModalOpen, setIsLoginView } = useAuth();
+export function AppContent({ routeElements }: { routeElements?: ReactNode }) {
+  const { user, authModalOpen, isLoginView, setAuthModalOpen, setIsLoginView } = useAuth();
   const location = useLocation();
 
   // Helper functions to determine which tab is active
@@ -20,7 +22,7 @@ function AppContent() {
   const isAnalyticsActive = location.pathname === '/analytics';
 
   // Base styling for the navigation links
-  const navBaseClass = "text-xs sm:text-sm font-bold uppercase tracking-widest whitespace-nowrap px-1 transition-all duration-200";
+  const navBaseClass = "text-[10px] sm:text-sm font-bold uppercase tracking-wide sm:tracking-widest whitespace-normal sm:whitespace-nowrap text-center px-1 inline-flex items-center justify-center transition-all duration-200";
   const navActiveClass = `${navBaseClass} text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]`;
   const navInactiveClass = `${navBaseClass} text-slate-500 hover:text-white`;
 
@@ -30,16 +32,17 @@ function AppContent() {
       <SEOHead />
       <SchemaMarkup />
       {/* Global Navigation - Fully Responsive & Vertically Aligned */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:p-3 focus:text-sky-400">Skip to content</a>
       <header className="bg-[#13141c] border-b border-[#2e3040] shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 py-3 lg:py-0">
-          
+
           {/* Main Container: Explicit height on desktop (lg:h-20) guarantees perfect center alignment */}
-          <div className="flex flex-wrap items-center justify-between lg:h-20">
-            
+          <div className="flex flex-wrap gap-y-3 items-center justify-between lg:h-20">
+
             {/* 1. Logo (Always Top Left) */}
             <div className="order-1 flex items-center h-full">
-              <Link to="/" className="text-xl sm:text-2xl font-black text-sky-500 tracking-tight flex items-center gap-2 group">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500 group-hover:text-sky-400 transition-colors" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <Link to="/" className="text-lg sm:text-2xl font-black text-sky-500 tracking-tight flex items-center gap-2 group">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500 group-hover:text-sky-400 transition-colors" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M16 30C23.732 30 30 23.732 30 16C30 8.26801 23.732 2 16 2C8.26801 2 2 8.26801 2 16C2 23.732 8.26801 30 16 30Z" stroke="currentColor" strokeWidth="3"/>
                   <path d="M2 16H11" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
                   <path d="M21 16H30" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
@@ -56,7 +59,7 @@ function AppContent() {
                   <span className="text-[10px] sm:text-xs font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
                     Logged In
                   </span>
-                  <button 
+                  <button
                     onClick={() => supabase.auth.signOut()}
                     className="text-[10px] sm:text-xs font-bold text-slate-400 hover:text-rose-400 transition-colors uppercase tracking-wider whitespace-nowrap"
                   >
@@ -64,16 +67,16 @@ function AppContent() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <button 
+                <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                  <button
                     onClick={() => { setIsLoginView(true); setAuthModalOpen(true); }}
                     className="text-[10px] sm:text-xs font-bold text-slate-300 hover:text-white transition-colors uppercase tracking-widest whitespace-nowrap px-2"
                   >
                     Log In
                   </button>
-                  <button 
+                  <button
                     onClick={() => { setIsLoginView(false); setAuthModalOpen(true); }}
-                    className="text-[10px] sm:text-xs font-black bg-sky-500 hover:bg-sky-400 text-white px-4 sm:px-5 py-2.5 rounded-lg transition-colors uppercase tracking-widest shadow-lg whitespace-nowrap"
+                    className="text-[10px] sm:text-xs font-black bg-sky-500 hover:bg-sky-400 text-white px-3 sm:px-5 py-2.5 rounded-lg transition-colors uppercase tracking-widest shadow-lg whitespace-nowrap"
                   >
                     Sign Up
                   </button>
@@ -86,7 +89,7 @@ function AppContent() {
 
             {/* 4. Nav Links (Drops below on Mobile/Tablet, Inline perfectly centered on Desktop) */}
             <div className="order-4 lg:order-2 w-full lg:w-auto lg:flex-1 flex items-center justify-start sm:justify-center lg:justify-end lg:pr-6 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar h-full">
-              <nav className="flex items-center space-x-6 sm:space-x-8">
+              <nav aria-label="Main navigation" className="grid grid-cols-3 gap-2 w-full lg:w-auto sm:flex sm:items-center sm:justify-center sm:gap-8">
                 <Link to="/" className={isBuilderActive ? navActiveClass : navInactiveClass}>
                   Team Builder
                 </Link>
@@ -109,22 +112,36 @@ function AppContent() {
       </header>
 
       {/* Dynamic Route Injection */}
-      <main className="flex-grow p-4 sm:p-6 w-full flex items-start mt-4 sm:mt-8">
+      <main id="main-content" className="min-w-0 flex-grow p-4 sm:p-6 w-full flex items-start mt-4 sm:mt-8">
+        <Suspense fallback={<div className="w-full min-h-[600px] max-w-[1400px] mx-auto"><h1 className="text-2xl font-black text-white">{location.pathname === '/analytics' ? 'Championship Meta Analytics' : location.pathname === '/team-showcase' ? 'Team Showcase' : 'Competitive Pokémon Team Builder'}</h1><p role="status" className="mt-4 text-slate-400">Loading…</p></div>}>
         <Routes>
-          <Route path="/" element={<TeamBuilder />} />
-          <Route path="/team/:teamId" element={<TeamBuilder />} />
-          <Route path="/team-showcase" element={<TeamShowcase />} />
-          <Route path="/analytics" element={<Analytics />} />
+          {routeElements || <>
+
+          <Route path="/" element={<routePages.TeamBuilder />} />
+          <Route path="/team/:teamId" element={<routePages.TeamBuilder />} />
+          <Route path="/team-showcase" element={<routePages.TeamShowcase />} />
+          <Route path="/analytics" element={<routePages.Analytics />} />
+          <Route path="*" element={<NotFound />} />
+          </>}
         </Routes>
+        </Suspense>
       </main>
-      
+
       {/* Site Footer with internal links */}
       <Footer />
 
       {/* Global Auth Modal */}
-      <AuthModal />
+      {authModalOpen && <Suspense fallback={null}><AuthModal key={isLoginView ? 'login' : 'signup'} /></Suspense>}
     </div>
   );
+}
+
+export function NotFound() {
+  return <section className="w-full max-w-3xl mx-auto py-12">
+    <h1 className="text-3xl font-black text-white">Page Not Found</h1>
+    <p className="mt-4 text-slate-400">This page is unavailable. Explore PokéChamp to build your next team.</p>
+    <Link to="/" className="inline-flex items-center text-sky-400 underline mt-6">Open the team builder</Link>
+  </section>;
 }
 
 export default function App() {

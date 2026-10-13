@@ -21,6 +21,9 @@ images.forEach((image, index) => {
 });
 await writeFile(new URL('../public/favicon.ico', import.meta.url), Buffer.concat([header, ...images]));
 for (const [name, size] of [['apple-touch-icon', 180], ['favicon-192', 192], ['favicon-512', 512]]) {
-  await sharp(svg).resize(Math.round(size * 0.7)).extend({ top: Math.floor(size * 0.15), bottom: Math.ceil(size * 0.15), left: Math.floor(size * 0.15), right: Math.ceil(size * 0.15), background: '#0b0c10' }).png().toFile(`public/${name}.png`);
+  const inner = Math.round(size * 0.7);
+  const before = Math.floor((size - inner) / 2);
+  const after = size - inner - before;
+  await sharp(svg).resize(inner).extend({ top: before, bottom: after, left: before, right: after, background: '#0b0c10' }).png().toFile(`public/${name}.png`);
 }
 console.log('Generated ICO, Apple touch icon, and manifest icons.');

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import rawMetaStats from '../data/metaroll_stats.json';
+import { useState, useRef } from 'react';
+import metaIndex from '../data/generated/meta-index.json';
+import initialMon from '../data/generated/meta-initial.json';
 import { TYPE_COLORS } from '../utils/constants';
 import { getPokemonImageUrl, getTypeIconUrl, getItemImageUrl } from '../utils/helpers';
 
-interface UsageItem { name: string; usage: string; type?: string; }
+interface UsageItem { name: string; usage: string; type?: string | null; }
 interface MatchupItem { rank: string; name: string; }
 interface StatSpread { HP: string; Atk: string; Def: string; SpA: string; SpD: string; Spe: string; }
 interface StatPointData { spread: StatSpread; usage: string; }
@@ -24,16 +25,20 @@ interface MetaPokemon {
   beaten_by: UsageItem[];
 }
 
-const getPokemonTypes = (name: string, metaStats: MetaPokemon[]) => {
+type MetaOverview = Pick<MetaPokemon, 'rank' | 'pokemon' | 'types'>;
+const detailUrls = import.meta.glob<string>('../data/generated/meta/*.json', { eager: true, query: '?url', import: 'default' });
+const detailCache = new Map<string, MetaPokemon>([[initialMon.pokemon, initialMon]]);
+
+const getPokemonTypes = (name: string, metaStats: MetaOverview[]) => {
   const mon = metaStats.find(m => m.pokemon === name);
   return mon ? mon.types : [];
 };
 
 const TypeBadge = ({ type, large = false }: { type: string, large?: boolean }) => (
   <div className="flex items-center gap-1.5 flex-shrink-0">
-    <img 
-      src={getTypeIconUrl(type)} 
-      alt={type} 
+    <img decoding="async" width={96} height={96}
+      src={getTypeIconUrl(type)}
+      alt={type}
       className={`${large ? 'w-6 h-6' : 'w-4 h-4'} object-contain drop-shadow-sm flex-shrink-0`}
       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
     />
@@ -43,38 +48,16 @@ const TypeBadge = ({ type, large = false }: { type: string, large?: boolean }) =
   </div>
 );
 
-export default function Analytics() {
-  const [metaStats, setMetaStats] = useState<MetaPokemon[]>([]);
-  const [activeMon, setActiveMon] = useState<MetaPokemon | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setIsLoading(true);
-    const rawData = rawMetaStats as any;
-    const formatData = rawData.doubles || [];
-    setMetaStats(formatData);
-    if (formatData.length > 0) {
-      setActiveMon(formatData[0]);
-    } else {
-      setActiveMon(null);
-    }
-    setIsLoading(false);
-  }, []);
-
-  const lastUpdated = (rawMetaStats as any).meta?.last_updated 
-    ? new Date((rawMetaStats as any).meta.last_updated).toLocaleString() 
-    : 'Unknown';
-
   const MiniSprite = ({ name }: { name: string }) => (
-    <img 
-      src={getPokemonImageUrl(name)} 
-      alt={name} 
+    <img decoding="async" width={96} height={96}
+      src={getPokemonImageUrl(name)}
+      alt={name}
       className="w-10 h-10 object-contain drop-shadow-md flex-shrink-0"
       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
     />
   );
 
-  const UsageBar = ({ label, usage, type, rank, isItem }: { label: string; usage: string; type?: string; rank?: number; isItem?: boolean }) => {
+  const UsageBar = ({ label, usage, type, rank, isItem }: { label: string; usage: string; type?: string | null; rank?: number; isItem?: boolean }) => {
     const percentage = parseFloat(usage);
     return (
       <div className="flex items-center gap-3 text-xs sm:text-sm py-2 border-b border-[#2e3040]/50 last:border-0 hover:bg-[#20222e]/40 transition-colors px-2 -mx-2">
@@ -83,12 +66,12 @@ export default function Analytics() {
         )}
         {type && (
           <div className="flex-shrink-0 flex items-center justify-center bg-[#20222e] rounded-full p-1 border border-[#2e3040]" title={type}>
-            <img src={getTypeIconUrl(type)} alt={type} className="w-5 h-5 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <img decoding="async" width={96} height={96} src={getTypeIconUrl(type)} alt={type} className="w-5 h-5 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           </div>
         )}
         {isItem && (
           <div className="flex-shrink-0 flex items-center justify-center">
-            <img src={getItemImageUrl(label)} alt={label} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <img decoding="async" width={96} height={96} src={getItemImageUrl(label)} alt={label} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           </div>
         )}
         <span className="text-slate-200 font-bold whitespace-normal break-words flex-grow">{label}</span>
@@ -100,19 +83,19 @@ export default function Analytics() {
     );
   };
 
-  const MatchupList = ({ title, data, titleColor }: { title: string; data: MatchupItem[]; titleColor: string }) => (
+  const MatchupList = ({ title, data, titleColor, metaStats, onSelect }: { title: string; data: MatchupItem[]; titleColor: string; metaStats: MetaOverview[]; onSelect: (mon: MetaOverview) => void }) => (
     <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4">
-      <h4 className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-3 border-b border-[#2e3040] pb-2 ${titleColor}`}>{title}</h4>
+      <h3 className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-3 border-b border-[#2e3040] pb-2 ${titleColor}`}>{title}</h3>
       <div className="flex flex-col gap-1.5">
         {data.map((item, idx) => {
           const types = getPokemonTypes(item.name, metaStats);
           return (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="flex items-center gap-3 bg-[#13141c] border border-[#2e3040] p-1.5 rounded-lg hover:border-sky-500 transition-colors cursor-pointer"
               onClick={() => {
                 const targetMon = metaStats.find(m => m.pokemon === item.name);
-                if (targetMon) setActiveMon(targetMon);
+                if (targetMon) onSelect(targetMon);
               }}
             >
               <span className="text-[9px] sm:text-[10px] font-black text-slate-500 w-4 text-center">{item.rank}</span>
@@ -132,27 +115,50 @@ export default function Analytics() {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-[1400px] mx-auto text-center py-32 flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-sky-500 rounded-full animate-spin"></div>
-        <h2 className="text-xl font-bold text-slate-300 animate-pulse">Processing Meta Data...</h2>
-      </div>
-    );
-  }
+const metaStats: MetaOverview[] = metaIndex.pokemon;
+const lastUpdated = metaIndex.meta?.last_updated
+  ? new Date(metaIndex.meta.last_updated).toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' })
+  : 'Unknown';
+
+export default function Analytics() {
+  const [activeMon, setActiveMon] = useState<MetaPokemon | null>(initialMon);
+  const [detailError, setDetailError] = useState('');
+  const [loadingName, setLoadingName] = useState('');
+  const selectionVersion = useRef(0);
+  const selectMon = async (mon: MetaOverview) => {
+    const version = ++selectionVersion.current;
+    setDetailError('');
+    setLoadingName(mon.pokemon);
+    try {
+      let detail = detailCache.get(mon.pokemon);
+      if (!detail) {
+        const response = await fetch(detailUrls[`../data/generated/meta/${mon.pokemon}.json`]);
+        if (!response.ok) throw new Error('Unable to load usage statistics.');
+        detail = await response.json() as MetaPokemon;
+        detailCache.set(mon.pokemon, detail);
+      }
+      if (version === selectionVersion.current) setActiveMon(detail);
+    } catch {
+      if (version === selectionVersion.current) setDetailError('Unable to load usage statistics. Please try selecting the Pokémon again.');
+    } finally {
+      if (version === selectionVersion.current) setLoadingName('');
+    }
+  };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-6 flex flex-col lg:flex-row gap-4 sm:gap-6 h-[calc(100vh-80px)] lg:h-[calc(100vh-120px)]">
+    <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-6 flex flex-col lg:flex-row gap-4 sm:gap-6 lg:h-[calc(100dvh-160px)] lg:min-h-[600px]">
       <h1 className="sr-only">Championship Meta Analytics</h1>
-      
+
+      {detailError && <p role="alert" className="text-rose-400">{detailError}</p>}
+      {loadingName && <p role="status" className="sr-only">Loading statistics for {loadingName}</p>}
       {/* LEFT SIDEBAR: Thinner Master Leaderboard List to remove dead space */}
       <div className="w-full lg:w-[320px] h-[35vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
         <div className="p-3 sm:p-4 border-b border-[#2e3040] bg-[#1a1b26] z-10 shadow-md">
           <h2 className="text-lg sm:text-xl font-black text-white">Doubles Meta</h2>
-          <p className="text-[10px] sm:text-xs text-slate-400 mt-1 mb-3">Live competitive usage statistics.</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-1 mb-3">Competitive usage statistics from the latest dataset.</p>
           <p className="text-[10px] sm:text-xs text-sky-400 font-bold bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">Last Updated: {lastUpdated}</p>
         </div>
-        
+
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {metaStats.length === 0 ? (
             <div className="p-6 text-center text-slate-500 text-sm border-b border-[#2e3040]">
@@ -162,11 +168,10 @@ export default function Analytics() {
           ) : metaStats.map((mon) => (
             <button
               key={mon.pokemon}
-              onClick={() => setActiveMon(mon)}
-              onMouseEnter={() => setActiveMon(mon)}
+              onClick={() => selectMon(mon)}
               className={`w-full flex items-center justify-between p-2 sm:p-3 border-b border-[#2e3040] transition-all text-left ${
-                activeMon?.pokemon === mon.pokemon 
-                  ? 'bg-sky-500/10 border-l-4 border-l-sky-500' 
+                activeMon?.pokemon === mon.pokemon
+                  ? 'bg-sky-500/10 border-l-4 border-l-sky-500'
                   : 'hover:bg-[#1a1b26] border-l-4 border-l-transparent'
               }`}
             >
@@ -174,9 +179,9 @@ export default function Analytics() {
                 <span className={`text-xs sm:text-sm font-black w-6 text-center ${activeMon?.pokemon === mon.pokemon ? 'text-sky-400' : 'text-slate-500'}`}>
                   {mon.rank}
                 </span>
-                <img 
-                  src={getPokemonImageUrl(mon.pokemon)} 
-                  alt={mon.pokemon} 
+                <img decoding="async" width={96} height={96}
+                  src={getPokemonImageUrl(mon.pokemon)}
+                  alt={mon.pokemon}
                   loading="lazy"
                   className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-lg"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
@@ -194,8 +199,8 @@ export default function Analytics() {
       </div>
 
       {/* RIGHT PANEL: min-w-0 and overflow-x-hidden strictly prevent horizontal scrolling */}
-      <div className="flex-1 min-w-0 h-[50vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
-        
+      <div className="flex-1 min-w-0 min-h-[50vh] lg:h-full bg-[#13141c] border border-[#2e3040] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
+
         {/* Detail Header */}
         {!activeMon ? (
           <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center mt-32">
@@ -207,9 +212,9 @@ export default function Analytics() {
             <div className="sticky top-0 z-20 bg-[#13141c]/95 backdrop-blur border-b border-[#2e3040] p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 shadow-md">
               <div className="relative flex-shrink-0">
                 <div className="absolute -inset-4 bg-sky-500/20 rounded-full blur-xl z-0"></div>
-                <img 
-                  src={getPokemonImageUrl(activeMon.pokemon)} 
-                  alt={activeMon.pokemon} 
+                <img decoding="async" width={96} height={96}
+                  src={getPokemonImageUrl(activeMon.pokemon)}
+                  alt={activeMon.pokemon}
                   loading="lazy"
                   className="w-16 h-16 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
@@ -229,7 +234,7 @@ export default function Analytics() {
         </div>
 
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          
+
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
             <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 sm:p-5">
               <h3 className="text-base sm:text-lg font-bold text-white mb-3">Most Common Moves</h3>
@@ -295,9 +300,9 @@ export default function Analytics() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-            <MatchupList title="Common Teammates" data={activeMon.teammates.slice(0, 6)} titleColor="text-sky-400" />
-            <MatchupList title="Consistently Beats" data={activeMon.beats.slice(0, 6)} titleColor="text-emerald-400" />
-            <MatchupList title="Often Loses To" data={activeMon.loses_to.slice(0, 6)} titleColor="text-rose-500" />
+            <MatchupList metaStats={metaStats} onSelect={selectMon} title="Common Teammates" data={activeMon.teammates.slice(0, 6)} titleColor="text-sky-400" />
+            <MatchupList metaStats={metaStats} onSelect={selectMon} title="Consistently Beats" data={activeMon.beats.slice(0, 6)} titleColor="text-emerald-400" />
+            <MatchupList metaStats={metaStats} onSelect={selectMon} title="Often Loses To" data={activeMon.loses_to.slice(0, 6)} titleColor="text-rose-500" />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-5">
@@ -309,7 +314,7 @@ export default function Analytics() {
                 ))}
               </div>
             </div>
-            
+
             <div className="bg-[#1a1b26] border border-[#2e3040] rounded-xl p-4 sm:p-5">
               <h3 className="text-[10px] sm:text-xs font-bold text-rose-500 uppercase tracking-wider mb-3 border-b border-[#2e3040] pb-2">Fatal Flaws</h3>
               <div className="flex flex-col gap-0.5">
