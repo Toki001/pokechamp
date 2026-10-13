@@ -34,6 +34,6 @@ Source datasets and maintenance scrapers remain in `src/data` and `scripts`. `sc
 npm run assets:brand
 ```
 
-This regenerates the SVG-based ICO, PNG favicons, Apple touch icon, and 1200×630 OG image. The manifest references the 192×192 and 512×512 icons.
+This creates `public/logo.svg` and the matching crowned-ball mark, then regenerates the SVG-based ICO, PNG favicons, Apple touch icon, and 1200×630 OG image. The manifest references the 192×192 and 512×512 icons.
 
 See [SEO audit and release checks](docs/SEO-AUDIT.md) for validation evidence and Search Console setup.

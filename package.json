@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "node scripts/preview.mjs",
     "predev": "node scripts/prepare-data.mjs",
-    "assets:brand": "node scripts/generate-favicon.js && node scripts/generate-og-image.mjs",
+    "assets:brand": "node scripts/generate-logo.mjs && node scripts/generate-favicon.js && node scripts/generate-og-image.mjs",
     "check:seo": "node scripts/verify-seo.mjs"
   },
   "dependencies": {

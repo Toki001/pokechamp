@@ -17,13 +17,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="text-center sm:text-left">
             <Link to="/" className="text-lg font-black text-sky-500 tracking-tight inline-flex items-center gap-2 group" aria-label="PokéChamp home">
-              <svg className="w-5 h-5 text-sky-500 group-hover:text-sky-400 transition-colors" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M16 30C23.732 30 30 23.732 30 16C30 8.26801 23.732 2 16 2C8.26801 2 2 8.26801 2 16C2 23.732 8.26801 30 16 30Z" stroke="currentColor" strokeWidth="3"/>
-                <path d="M2 16H11" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                <path d="M21 16H30" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                <circle cx="16" cy="16" r="5" stroke="currentColor" strokeWidth="3"/>
-              </svg>
-              <span><span className="text-white group-hover:text-slate-200 transition-colors">Poké</span>Champ</span>
+              <img src="/logo.svg" alt="PokéChamp" width={420} height={96} className="w-[160px] h-auto" loading="lazy" decoding="async" />
             </Link>
             <p className="text-xs text-slate-500 mt-2 max-w-xs">
               Build, share, and analyze competitive Pokémon teams for championship-format battles.

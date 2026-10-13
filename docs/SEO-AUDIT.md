@@ -45,3 +45,11 @@ The property owner should open [Google Search Console](https://search.google.com
 These changes are committed locally; no deployment or push is included. After deployment, check canonical slugs, alias redirects, unknown URL status codes, shared-team loading, sitemap, robots, favicon URLs, and the Google verification file on the production host. Inspect the three public routes in Search Console and measure production Web Vitals.
 
 Shared teams are loaded from Supabase in the browser. Their full content is not prerendered, and nonexistent team IDs use an unavailable-team message inside the static shell. Generating individual team HTML and server-side team existence status codes would require backend rendering or a scheduled public-team export. Only stable public landing pages are included in the sitemap.
+
+## Search-result branding follow-up
+
+A new, original PokéChamp wordmark is available at `/logo.svg`, with a matching crowned-ball mark for favicons and social artwork. The unrelated untracked root `logo.svg` is untouched and is not referenced by the app or artwork scripts. Header and footer branding now use the new asset, and the homepage H1 names PokéChamp explicitly.
+
+The `WebSite` schema includes `name: PokéChamp`, the ASCII alternative `PokeChamp`, and the exact site hostname as a fallback. Its publisher references the PokéChamp brand and logo schema. These declarations strengthen the requested site name; they cannot force an immediate change in Google's search results. [Google chooses site names from structured data and other signals](https://developers.google.com/search/docs/appearance/site-names).
+
+Deploy the updated build and request indexing of the homepage through Search Console. Google must recrawl and process the new homepage and favicon before its search-result label or icon can change.

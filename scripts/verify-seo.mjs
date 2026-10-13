@@ -22,6 +22,11 @@ for (const page of pages) {
   assert.ok(!/noindex|REPLACE_WITH_YOUR_CODE|\/src\/assets|<!--app-html-->/.test(html));
   const schema = html.match(/<script id="site-schema" type="application\/ld\+json">(.*?)<\/script>/s);
   assert.ok(schema, `${page.path}: structured data in initial HTML`);
+  const graph = JSON.parse(schema[1])['@graph'];
+  const website = graph.find(item => item['@type'] === 'WebSite');
+  assert.equal(website.name, 'PokéChamp');
+  assert.ok(website.alternateName.includes('PokeChamp'));
+  assert.ok(graph.some(item => item.logo?.url === `${SITE_URL}/logo.svg`));
   assert.ok(JSON.parse(schema[1])['@graph'].some(item => item.url === `${SITE_URL}${page.path}`));
   for (const image of html.matchAll(/<img\b[^>]*>/g)) assert.match(image[0], /\balt="[^"]+"/, `${page.path}: descriptive image alt`);
   // Check every local resource and navigation link in the static HTML.

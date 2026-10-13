@@ -574,7 +574,7 @@ export default function TeamBuilder() {
   return (
     <div className="w-full max-w-[1400px] mx-auto text-slate-200 font-sans pb-20">
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-black text-white">{teamId ? 'Shared Pokémon Team' : 'Competitive Pokémon Team Builder'}</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-white">{teamId ? 'Shared Pokémon Team' : 'PokéChamp Pokémon Team Builder'}</h1>
         <p className="mt-2 text-sm text-slate-400">Configure a six-Pokémon roster, compare defensive coverage, and share your strategy. Find inspiration in the <Link to="/team-showcase" className="text-sky-400 underline">team showcase</Link> and <Link to="/analytics" className="text-sky-400 underline">meta analytics</Link>.</p>
       </div>
       {/* Top Header - Updated Team Name Input Container */}
