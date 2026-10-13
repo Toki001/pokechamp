@@ -1,48 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const SITE_URL = 'https://pokechamp-tau.vercel.app';
-const SITE_NAME = 'PokéChamp';
-const OG_IMAGE = `${SITE_URL}/og-image.png`;
-
-interface SEOConfig {
-  title: string;
-  description: string;
-  path: string;
-}
-
-function getRouteConfig(pathname: string): SEOConfig {
-  if (pathname === '/team-showcase') {
-    return {
-      title: 'Team Showcase — PokéChamp',
-      description: 'Browse and share competitive Pokémon teams from the community. Discover winning team compositions, vote on your favorites, and discuss strategies.',
-      path: '/team-showcase',
-    };
-  }
-
-  if (pathname === '/analytics') {
-    return {
-      title: 'Meta Analytics — PokéChamp',
-      description: 'Championship meta analytics: usage tiers, top movesets, items, abilities, natures, and stat spreads for 262 competitive Pokémon.',
-      path: '/analytics',
-    };
-  }
-
-  if (pathname.startsWith('/team/')) {
-    return {
-      title: 'Shared Team — PokéChamp',
-      description: 'View a shared competitive Pokémon team build with full movesets, items, natures, abilities, and defensive coverage analysis.',
-      path: pathname,
-    };
-  }
-
-  // Default: Team Builder (home)
-  return {
-    title: 'PokéChamp — Competitive Team Builder & Showcase',
-    description: 'Build winning Pokémon teams with movesets, items, natures, abilities, and defensive type coverage analysis. Save, share, and compete.',
-    path: '/',
-  };
-}
+import { SITE_URL, SITE_NAME, OG_IMAGE, getRouteConfig } from '../seo/site.mjs';
 
 function updateMetaTag(property: string, content: string, isProperty = false) {
   const attr = isProperty ? 'property' : 'name';
@@ -90,6 +49,10 @@ export default function SEOHead() {
     updateMetaTag('og:description', config.description, true);
     updateMetaTag('og:url', fullUrl, true);
     updateMetaTag('og:image', OG_IMAGE, true);
+    updateMetaTag('og:image:width', '1200', true);
+    updateMetaTag('og:image:height', '630', true);
+    updateMetaTag('og:image:alt', 'PokéChamp — build, share, and analyze competitive Pokémon teams', true);
+    updateMetaTag('twitter:image:alt', 'PokéChamp competitive Pokémon team builder');
     updateMetaTag('og:type', 'website', true);
     updateMetaTag('og:site_name', SITE_NAME, true);
 
